@@ -1,72 +1,234 @@
-*{
-    margin:0;
-    padding:0;
-    box-sizing:border-box;
-    font-family:Arial,sans-serif;
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    font-family: Arial, sans-serif;
 }
 
-body{
-    background:#121212;
-    color:white;
-    display:flex;
-    justify-content:center;
-    align-items:center;
-    min-height:100vh;
-    padding:20px;
+body {
+    background: #121212;
+    color: white;
+    min-height: 100vh;
+    padding: 15px;
 }
 
-.container{
-    width:100%;
-    max-width:700px;
-    background:#1f1f1f;
-    border-radius:15px;
-    padding:25px;
-    box-shadow:0 0 15px rgba(0,255,255,.2);
+.container {
+    width: 100%;
+    max-width: 900px;
+    margin: 0 auto;
+    background: #1b1b1b;
+    border-radius: 12px;
+    padding: 20px;
+    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
 }
 
-h1{
-    text-align:center;
-    color:#00e5ff;
-    margin-bottom:10px;
+h1 {
+    text-align: center;
+    color: #00e5ff;
+    margin-bottom: 10px;
 }
 
-p{
-    text-align:center;
-    margin-bottom:20px;
-    color:#bdbdbd;
+p {
+    text-align: center;
+    margin-bottom: 20px;
+    color: #bbbbbb;
 }
 
-input[type=file]{
-    width:100%;
-    padding:10px;
-    margin-bottom:15px;
-    background:#2b2b2b;
-    color:white;
-    border-radius:8px;
+input[type="file"] {
+    width: 100%;
+    padding: 12px;
+    margin-bottom: 15px;
+    background: #292929;
+    color: white;
+    border: none;
+    border-radius: 8px;
 }
 
-button{
-    width:100%;
-    padding:12px;
-    background:#00bcd4;
-    color:white;
-    border:none;
-    border-radius:8px;
-    cursor:pointer;
-    font-size:18px;
-    transition:.3s;
+button {
+    width: 100%;
+    padding: 13px;
+    background: #00a9bd;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 17px;
+    transition: 0.2s;
 }
 
-button:hover{
-    background:#0097a7;
+button:hover {
+    background: #008fa1;
 }
 
-pre{
-    margin-top:20px;
-    background:#111;
-    padding:15px;
-    border-radius:8px;
-    white-space:pre-wrap;
-    word-break:break-word;
-    min-height:180px;
-                             }
+/* =========================
+   KHUNG KẾT QUẢ
+   ========================= */
+
+pre,
+#output,
+#result,
+#resultBox {
+    margin-top: 20px;
+    background: #080808;
+    padding: 15px;
+    border-radius: 8px;
+    white-space: pre-wrap;
+    word-break: break-word;
+    min-height: 180px;
+}
+
+/* =========================
+   TRÌNH SOẠN BẢN DỊCH
+   ========================= */
+
+.gt-editor {
+    width: 100%;
+    background: #080808;
+    padding: 15px;
+    border-radius: 10px;
+    margin-top: 10px;
+}
+
+.gt-editor h3 {
+    color: #00e5ff;
+    margin-bottom: 8px;
+}
+
+.gt-editor p {
+    color: #aaa;
+    font-size: 14px;
+    margin-bottom: 15px;
+}
+
+/* Mỗi dòng dịch */
+
+.gt-edit-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 10px;
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Hai ô text */
+
+.gt-edit-row textarea {
+    width: 100%;
+    min-height: 70px;
+    padding: 10px;
+    border-radius: 6px;
+    border: 1px solid #444;
+    resize: vertical;
+    font-size: 15px;
+    line-height: 1.4;
+    box-sizing: border-box;
+}
+
+/* Ô nguyên bản */
+
+.gt-original-input {
+    background: #242424;
+    color: #dddddd;
+}
+
+/* Ô nhập tiếng Việt */
+
+.gt-translation-input {
+    background: #111111;
+    color: white;
+    border: 1px solid #00a9bd !important;
+}
+
+/* Khi bấm vào ô dịch */
+
+.gt-translation-input:focus {
+    outline: none;
+    border: 1px solid #00e5ff !important;
+    box-shadow: 0 0 5px rgba(0, 229, 255, 0.3);
+}
+
+/* Nút xuất file */
+
+.gt-export-button {
+    margin-top: 15px;
+    background: #00a9bd;
+}
+
+/* =========================
+   PREVIEW
+   ========================= */
+
+.gt-list {
+    width: 100%;
+}
+
+.gt-row {
+    display: grid;
+    grid-template-columns: 40px 1fr;
+    gap: 8px;
+    padding: 8px;
+    margin-bottom: 5px;
+    background: #181818;
+    border-radius: 5px;
+}
+
+.gt-number {
+    color: #00e5ff;
+}
+
+.gt-original {
+    color: #ddd;
+    word-break: break-word;
+}
+
+.gt-header {
+    margin-bottom: 15px;
+}
+
+.gt-header strong {
+    color: #00e5ff;
+}
+
+.gt-header small {
+    display: block;
+    color: #888;
+    margin-top: 5px;
+}
+
+/* =========================
+   ĐIỆN THOẠI
+   ========================= */
+
+@media (max-width: 600px) {
+
+    body {
+        padding: 8px;
+    }
+
+    .container {
+        padding: 12px;
+    }
+
+    h1 {
+        font-size: 22px;
+    }
+
+    .gt-editor {
+        padding: 8px;
+    }
+
+    .gt-edit-row {
+        grid-template-columns: 1fr 1fr;
+        gap: 5px;
+    }
+
+    .gt-edit-row textarea {
+        min-height: 80px;
+        padding: 7px;
+        font-size: 13px;
+    }
+
+    .gt-editor p {
+        font-size: 12px;
+    }
+    }
