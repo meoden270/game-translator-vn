@@ -381,10 +381,6 @@ function showTranslationEditor() {
         const row = document.createElement("div");
         row.className = "gt-edit-row";
 
-        const number = document.createElement("div");
-        number.className = "gt-number";
-        number.textContent = index + 1;
-
         const original = document.createElement("textarea");
         original.className = "gt-original-input";
         original.value = item.original;
