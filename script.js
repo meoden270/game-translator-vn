@@ -208,11 +208,21 @@ function isTranslatable(text, path) {
         return false;
     }
 
-    /* Tag */
+    /* Không dịch tên file / mã trong lệnh */
     if (
-        /^<[^>]+>$/.test(value)
+    /^<(Battle Portrait|Menu Portrait):\s*[^>]+>$/i.test(value)
     ) {
-        return false;
+    return false;
+    }
+
+    /* Tag / lệnh */
+    if (/^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(value)) {
+    return false;
+    }
+
+    /* Các lệnh có nội dung có thể dịch */
+    if (/^<[^>]+:\s*[^>]+>$/.test(value)) {
+    return true;
     }
 
     /* Công thức RPG Maker */
