@@ -1,212 +1,315 @@
+/* =========================================================
+   GAME TRANSLATOR VN - v0.2
+   GIAO DIỆN DỊCH DỌC
+   ========================================================= */
+
 * {
-    margin: 0;
-    padding: 0;
     box-sizing: border-box;
-    font-family: Arial, sans-serif;
+}
+
+html {
+    scroll-behavior: smooth;
 }
 
 body {
-    background: #121212;
-    color: white;
-    min-height: 100vh;
-    padding: 15px;
+    margin: 0;
+    padding: 0;
+    background: #111;
+    color: #eee;
+    font-family: Arial, sans-serif;
 }
 
 .container {
     width: 100%;
     max-width: 900px;
     margin: 0 auto;
-    background: #1b1b1b;
-    border-radius: 12px;
     padding: 20px;
-    box-shadow: 0 0 15px rgba(0, 0, 0, 0.5);
 }
 
 h1 {
+    margin: 0 0 8px;
     text-align: center;
-    color: #00e5ff;
-    margin-bottom: 10px;
+    font-size: 28px;
+    color: #00c8df;
 }
 
-p {
+.container > p {
+    margin: 0 0 18px;
     text-align: center;
-    margin-bottom: 20px;
-    color: #bbbbbb;
+    color: #aaa;
 }
 
-input[type="file"] {
+/* =========================
+   CHỌN FILE
+   ========================= */
+
+#fileInput {
+    display: block;
     width: 100%;
     padding: 12px;
-    margin-bottom: 15px;
-    background: #292929;
-    color: white;
-    border: none;
-    border-radius: 8px;
+    margin-bottom: 12px;
+    background: #222;
+    color: #eee;
+    border: 1px solid #333;
+    border-radius: 7px;
 }
 
-button {
+/* =========================
+   NÚT DỊCH
+   ========================= */
+
+#translateBtn {
     width: 100%;
     padding: 13px;
+    border: 0;
+    border-radius: 7px;
     background: #00a9bd;
     color: white;
-    border: none;
-    border-radius: 8px;
+    font-size: 16px;
     cursor: pointer;
-    font-size: 17px;
-    transition: 0.2s;
 }
 
-button:hover {
-    background: #008fa1;
+#translateBtn:hover {
+    background: #00bfd5;
 }
 
 /* =========================
    KHUNG KẾT QUẢ
    ========================= */
 
-pre,
 #output,
 #result,
-#resultBox {
-    margin-top: 20px;
-    background: #080808;
-    padding: 15px;
-    border-radius: 8px;
-    white-space: pre-wrap;
-    word-break: break-word;
-    min-height: 180px;
+#resultBox,
+#translationResult {
+    width: 100%;
+    margin-top: 18px;
 }
 
 /* =========================
-   TRÌNH SOẠN BẢN DỊCH
+   TRẠNG THÁI
+   ========================= */
+
+#status,
+#message,
+#statusMessage {
+    margin-top: 10px;
+    color: #aaa;
+    text-align: center;
+}
+
+/* =========================
+   EDITOR
    ========================= */
 
 .gt-editor {
     width: 100%;
-    background: #080808;
-    padding: 15px;
-    border-radius: 10px;
-    margin-top: 10px;
+    padding: 14px;
+    background: #090909;
+    border-radius: 8px;
+}
+
+.gt-editor > div:first-child {
+    margin-bottom: 20px;
 }
 
 .gt-editor h3 {
-    color: #00e5ff;
-    margin-bottom: 8px;
+    margin: 0 0 10px;
+    color: #00c8df;
+    font-size: 18px;
 }
 
 .gt-editor p {
-    color: #aaa;
-    font-size: 14px;
-    margin-bottom: 15px;
+    margin: 0;
+    color: #888;
+    font-size: 13px;
+    text-align: center;
 }
 
-/* Mỗi dòng dịch */
+/* =========================
+   TỪNG MỤC
+   ========================= */
 
 .gt-edit-row {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 10px;
+    position: relative;
+
+    display: flex;
+    flex-direction: column;
+
     width: 100%;
-    margin-bottom: 10px;
+    margin-bottom: 18px;
+    padding: 14px 12px 12px;
+
+    background: #151515;
+    border: 1px solid #292929;
+    border-radius: 8px;
+
+    counter-increment: translation-item;
 }
 
-/* Hai ô text */
+/* Đánh số tự động */
 
-.gt-edit-row textarea {
-    width: 100%;
-    min-height: 70px;
-    padding: 10px;
-    border-radius: 6px;
-    border: 1px solid #444;
-    resize: vertical;
-    font-size: 15px;
-    line-height: 1.4;
-    box-sizing: border-box;
+.gt-editor {
+    counter-reset: translation-item;
 }
 
-/* Ô nguyên bản */
+.gt-edit-row::before {
+    content: counter(translation-item);
+
+    display: block;
+
+    margin-bottom: 8px;
+
+    color: #00c8df;
+    font-size: 13px;
+    font-weight: bold;
+}
+
+/* =========================
+   Ô TEXT GỐC
+   ========================= */
 
 .gt-original-input {
+    display: block;
+
+    width: 100%;
+    min-height: 65px;
+
+    margin: 0 0 10px;
+
+    padding: 12px;
+
+    resize: vertical;
+
     background: #242424;
-    color: #dddddd;
+    color: #eee;
+
+    border: 1px solid #444;
+    border-radius: 6px;
+
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
 }
 
-/* Ô nhập tiếng Việt */
+/* =========================
+   Ô BẢN DỊCH
+   ========================= */
 
 .gt-translation-input {
-    background: #111111;
-    color: white;
-    border: 1px solid #00a9bd !important;
-}
+    display: block;
 
-/* Khi bấm vào ô dịch */
+    width: 100%;
+    min-height: 80px;
+
+    margin: 0;
+
+    padding: 12px;
+
+    resize: vertical;
+
+    background: #0f0f0f;
+    color: #fff;
+
+    border: 1px solid #00a9bd;
+    border-radius: 6px;
+
+    font-family: Arial, sans-serif;
+    font-size: 14px;
+    line-height: 1.45;
+
+    outline: none;
+}
 
 .gt-translation-input:focus {
-    outline: none;
-    border: 1px solid #00e5ff !important;
-    box-shadow: 0 0 5px rgba(0, 229, 255, 0.3);
+    border-color: #00d9ef;
+    box-shadow: 0 0 0 1px #00d9ef;
 }
 
-/* Nút xuất file */
+.gt-translation-input::placeholder {
+    color: #777;
+}
+
+/* =========================
+   NÚT XUẤT FILE
+   ========================= */
 
 .gt-export-button {
-    margin-top: 15px;
+    display: block;
+
+    width: 100%;
+
+    margin-top: 20px;
+    padding: 13px;
+
+    border: 0;
+    border-radius: 7px;
+
     background: #00a9bd;
+    color: white;
+
+    font-size: 15px;
+    cursor: pointer;
+}
+
+.gt-export-button:hover {
+    background: #00bfd5;
 }
 
 /* =========================
    PREVIEW
    ========================= */
 
+.gt-header {
+    margin-bottom: 12px;
+    padding: 10px;
+
+    background: #181818;
+    border-radius: 6px;
+}
+
+.gt-header strong {
+    display: block;
+    color: #00c8df;
+}
+
+.gt-header small {
+    color: #888;
+}
+
 .gt-list {
     width: 100%;
 }
 
 .gt-row {
-    display: grid;
-    grid-template-columns: 40px 1fr;
-    gap: 8px;
+    display: flex;
+    gap: 10px;
+
+    margin-bottom: 8px;
     padding: 8px;
-    margin-bottom: 5px;
+
     background: #181818;
-    border-radius: 5px;
+    border-radius: 6px;
 }
 
 .gt-number {
-    color: #00e5ff;
+    color: #00c8df;
+    font-weight: bold;
 }
 
 .gt-original {
+    flex: 1;
     color: #ddd;
     word-break: break-word;
 }
 
-.gt-header {
-    margin-bottom: 15px;
-}
-
-.gt-header strong {
-    color: #00e5ff;
-}
-
-.gt-header small {
-    display: block;
-    color: #888;
-    margin-top: 5px;
-}
-
 /* =========================
-   ĐIỆN THOẠI
+   MOBILE
    ========================= */
 
 @media (max-width: 600px) {
 
-    body {
-        padding: 8px;
-    }
-
     .container {
-        padding: 12px;
+        padding: 10px;
     }
 
     h1 {
@@ -218,17 +321,17 @@ pre,
     }
 
     .gt-edit-row {
-        grid-template-columns: 1fr 1fr;
-        gap: 5px;
+        padding: 12px 10px 10px;
+        margin-bottom: 14px;
     }
 
-    .gt-edit-row textarea {
-        min-height: 80px;
-        padding: 7px;
+    .gt-original-input {
+        min-height: 62px;
         font-size: 13px;
     }
 
-    .gt-editor p {
-        font-size: 12px;
+    .gt-translation-input {
+        min-height: 75px;
+        font-size: 13px;
     }
     }
