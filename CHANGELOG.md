@@ -3,6 +3,22 @@
 Tất cả các thay đổi quan trọng của dự án sẽ được ghi lại tại đây.
 
 ---
+# CHANGELOG
+
+## v0.2.1 — 30/08/2026
+
+### Cập nhật
+- Cải thiện nhận diện text có thể dịch trong file game.
+- Hạn chế đưa ID, tên resource và code nội bộ vào danh sách dịch.
+- Giữ nguyên cấu trúc JSON.
+- Giữ nguyên code và placeholder khi xuất file.
+- Cải thiện xử lý file JSON / TXT / RPY / KS / JS / XML cơ bản.
+
+### Ghi chú
+- Bản v0.2.1 vẫn chưa tích hợp dịch tự động bằng API.
+- Người dùng có thể chỉnh bản dịch thủ công trước khi xuất file.
+  
+---
 
 ## v0.2.0 - 30/08/2026
 
