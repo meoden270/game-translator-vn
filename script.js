@@ -427,9 +427,13 @@ function autoResize(element) {
 
     if (!element) return;
 
-    element.style.height = "auto";
+    element.style.height = "0px";
+
     element.style.height =
-        element.scrollHeight + "px";
+        Math.max(
+            element.scrollHeight,
+            45
+        ) + "px";
 }
 
 /* =========================
