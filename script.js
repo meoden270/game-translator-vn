@@ -398,7 +398,6 @@ function showTranslationEditor() {
             item.translation = translation.value;
         });
 
-        row.appendChild(number);
         row.appendChild(original);
         row.appendChild(translation);
 
