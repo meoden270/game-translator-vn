@@ -1,6 +1,6 @@
 /* =========================================================
    GAME TRANSLATOR VN - v0.2.2
-   GIAO DIỆN DỊCH DỌC
+   GIAO DIỆN DỊCH DỌC - Ô TỰ GIÃN THEO NỘI DUNG
    ========================================================= */
 
 * {
@@ -106,6 +106,7 @@ h1 {
     padding: 14px;
     background: #090909;
     border-radius: 8px;
+    overflow: visible;
 }
 
 .gt-editor > div:first-child {
@@ -131,10 +132,12 @@ h1 {
 
 .gt-edit-row {
     position: relative;
+
     display: flex;
     flex-direction: column;
 
     width: 100%;
+
     margin-bottom: 18px;
     padding: 14px 12px 12px;
 
@@ -143,16 +146,21 @@ h1 {
     border-radius: 8px;
 
     counter-increment: translation-item;
+
+    overflow: visible;
 }
 
 .gt-editor {
     counter-reset: translation-item;
 }
 
+/* SỐ THỨ TỰ */
+
 .gt-edit-row::before {
     content: counter(translation-item);
 
     display: block;
+
     margin-bottom: 8px;
 
     color: #00c8df;
@@ -169,15 +177,14 @@ h1 {
 
     width: 100%;
 
-    /* Khoảng 30 dòng */
-    min-height: 450px;
-    height: 450px;
+    min-height: 45px;
+    height: auto;
 
     margin: 0 0 10px;
     padding: 12px;
 
     resize: none;
-    overflow-y: auto;
+    overflow: hidden;
 
     background: #242424;
     color: #eee;
@@ -190,7 +197,8 @@ h1 {
     line-height: 1.45;
 
     white-space: pre-wrap;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 /* =========================
@@ -202,15 +210,14 @@ h1 {
 
     width: 100%;
 
-    /* Khoảng 30 dòng */
-    min-height: 450px;
-    height: 450px;
+    min-height: 45px;
+    height: auto;
 
     margin: 0;
     padding: 12px;
 
     resize: none;
-    overflow-y: auto;
+    overflow: hidden;
 
     background: #0f0f0f;
     color: #fff;
@@ -225,7 +232,8 @@ h1 {
     outline: none;
 
     white-space: pre-wrap;
-    overflow-wrap: break-word;
+    overflow-wrap: anywhere;
+    word-break: break-word;
 }
 
 .gt-translation-input:focus {
@@ -311,7 +319,7 @@ h1 {
 }
 
 /* =========================
-   MOBILE - ĐIỆN THOẠI
+   MOBILE
    ========================= */
 
 @media (max-width: 600px) {
@@ -329,29 +337,24 @@ h1 {
     }
 
     .gt-edit-row {
-        padding: 12px 10px 10px;
+        padding: 10px 8px 10px;
         margin-bottom: 14px;
     }
 
-    /* Ô gốc khoảng 30 dòng */
     .gt-original-input {
-        min-height: 450px;
-        height: 450px;
-
+        min-height: 42px;
         font-size: 13px;
-        line-height: 1.45;
-
-        overflow-y: auto;
+        line-height: 1.5;
     }
 
-    /* Ô dịch khoảng 30 dòng */
     .gt-translation-input {
-        min-height: 450px;
-        height: 450px;
-
+        min-height: 42px;
         font-size: 13px;
-        line-height: 1.45;
+        line-height: 1.5;
+    }
 
-        overflow-y: auto;
+    .gt-export-button {
+        font-size: 14px;
+        padding: 12px;
     }
    }
