@@ -213,65 +213,87 @@ function processTextFile(text) {
             return;
         }
 
-        /* Bỏ Portrait */
-        if (
-            /^<(Battle Portrait|Menu Portrait):/i.test(clean)
-        ) {
-            return;
-        }
-
-        /* Bỏ tag cấu trúc */
-        if (
-            /^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(clean)
-        ) {
-            return;
-        }
-
         /*
-         * Với lệnh có dạng:
-         * <Passive State: Half Encounters>
-         *
-         * Cho phép đưa ra dịch.
+         * GIỮ NGUYÊN CÁC DÒNG TAG
+         * Không được làm mất khỏi giao diện
          */
+
         if (
-            /^<[^>]+:\s*.+>$/.test(clean)
+            /^<(Battle Portrait|Menu Portrait):\s*[^>]+>$/i.test(clean)
         ) {
             extractedTexts.push({
                 path: ["line", index],
                 original: clean,
-                translation: ""
+                translation: "",
+                locked: true
+            });
+
+            return;
+        }
+
+        if (
+            /^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(clean)
+        ) {
+            extractedTexts.push({
+                path: ["line", index],
+                original: clean,
+                translation: "",
+                locked: true
             });
 
             return;
         }
 
         /*
-         * Các dòng thuộc Trait Sets:
+         * Các lệnh có nội dung cần dịch
+         * Ví dụ:
+         * <Passive State: Half Encounters>
+         */
+
+        if (/^<[^>]+:\s*.+>$/.test(clean)) {
+
+            extractedTexts.push({
+                path: ["line", index],
+                original: clean,
+                translation: "",
+                locked: false
+            });
+
+            return;
+        }
+
+        /*
+         * Trait Sets
          * Element: Dark
          * Gender: Male
          * Nature: Modest
          */
+
         if (
             /^[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]+\s*:\s*.+$/.test(clean)
         ) {
+
             extractedTexts.push({
                 path: ["line", index],
                 original: clean,
-                translation: ""
+                translation: "",
+                locked: false
             });
 
             return;
         }
 
         /*
-         * Nội dung thông thường.
+         * Nội dung Biography / WordWrap
          */
+
         if (isTranslatable(clean)) {
 
             extractedTexts.push({
                 path: ["line", index],
                 original: clean,
-                translation: ""
+                translation: "",
+                locked: false
             });
         }
     });
