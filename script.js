@@ -365,69 +365,38 @@ function showPreview() {
    ========================= */
 
 function showTranslationEditor() {
-
     output.innerHTML = "";
 
-    const title =
-        document.createElement("div");
-
+    const title = document.createElement("div");
     title.innerHTML =
         "<h3>🇻🇳 Dịch file game</h3>" +
-        "<p>Text gốc bên trái — Bản dịch bên phải</p>";
+        "<p>Text gốc ở trên — Bản dịch ở dưới</p>";
 
     output.appendChild(title);
 
-    const editor =
-        document.createElement("div");
-
-    editor.className =
-        "gt-editor";
+    const editor = document.createElement("div");
+    editor.className = "gt-editor";
 
     extractedTexts.forEach(function (item, index) {
+        const row = document.createElement("div");
+        row.className = "gt-edit-row";
 
-        const row =
-            document.createElement("div");
+        const number = document.createElement("div");
+        number.className = "gt-number";
+        number.textContent = index + 1;
 
-        row.className =
-            "gt-edit-row";
-
-        const number =
-            document.createElement("div");
-
-        number.textContent =
-            index + 1;
-
-        number.className =
-            "gt-number";
-
-        const original =
-            document.createElement("textarea");
-
-        original.className =
-            "gt-original-input";
-
-        original.value =
-            item.original;
-
+        const original = document.createElement("textarea");
+        original.className = "gt-original-input";
+        original.value = item.original;
         original.readOnly = true;
 
-        const translation =
-            document.createElement("textarea");
+        const translation = document.createElement("textarea");
+        translation.className = "gt-translation-input";
+        translation.placeholder = "Nhập bản dịch tiếng Việt...";
 
-        translation.className =
-            "gt-translation-input";
-
-        translation.placeholder =
-            "Nhập bản dịch tiếng Việt...";
-
-        translation.addEventListener(
-            "input",
-            function () {
-
-                item.translation =
-                    translation.value;
-            }
-        );
+        translation.addEventListener("input", function () {
+            item.translation = translation.value;
+        });
 
         row.appendChild(number);
         row.appendChild(original);
@@ -438,19 +407,10 @@ function showTranslationEditor() {
 
     output.appendChild(editor);
 
-    const exportButton =
-        document.createElement("button");
-
-    exportButton.textContent =
-        "💾 Xuất file đã dịch";
-
-    exportButton.className =
-        "gt-export-button";
-
-    exportButton.addEventListener(
-        "click",
-        exportTranslatedFile
-    );
+    const exportButton = document.createElement("button");
+    exportButton.textContent = "💾 Xuất file đã dịch";
+    exportButton.className = "gt-export-button";
+    exportButton.addEventListener("click", exportTranslatedFile);
 
     output.appendChild(exportButton);
 }
