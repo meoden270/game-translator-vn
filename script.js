@@ -129,20 +129,6 @@ function isTranslatable(text) {
 
     if (!value) return false;
 
-    /* Không dịch Portrait */
-    if (
-        /^<(Battle Portrait|Menu Portrait):/i.test(value)
-    ) {
-        return false;
-    }
-
-    /* Không dịch tag cấu trúc */
-    if (
-        /^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(value)
-    ) {
-        return false;
-    }
-
     /* Không dịch số */
     if (/^[\d\s.,+\-*/%]+$/.test(value)) {
         return false;
