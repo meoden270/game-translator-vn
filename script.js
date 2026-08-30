@@ -1,433 +1,490 @@
 /* =========================================================
    GAME TRANSLATOR VN - v0.2.1
-   ---------------------------------------------------------
-   - Lọc text RPG Maker JSON tốt hơn
-   - Bỏ ID, tên resource, tag/plugin, công thức và giá trị nội bộ
-   - Ưu tiên thoại, lựa chọn, tên, mô tả và text tự nhiên
-   - Giữ nguyên cấu trúc JSON
-   - Với file text: chỉ thay đúng phần text được nhận diện
-   - Không tự động gọi API
+   Ngày cập nhật: 30/08/2026
    ========================================================= */
 
 "use strict";
+
+/* =========================
+   BIẾN
+   ========================= */
 
 let currentFile = null;
 let originalText = "";
 let currentData = null;
 let extractedTexts = [];
-let translations = new Map();
 
-function findElement(...ids) {
-    for (const id of ids) {
-        const el = document.getElementById(id);
-        if (el) return el;
-    }
-    return null;
+/* =========================
+   ELEMENT
+   ========================= */
+
+const fileInput = document.getElementById("fileInput");
+const translateBtn = document.getElementById("translateBtn");
+const output = document.getElementById("output");
+
+/* =========================
+   KIỂM TRA
+   ========================= */
+
+if (!fileInput || !translateBtn || !output) {
+    console.error("Game Translator VN: Không tìm thấy HTML cần thiết.");
 }
 
-function getUI() {
-    return {
-        fileInput: findElement("fileInput", "file", "uploadFile", "fileUpload"),
-        translateButton: findElement("translateButton", "translateBtn", "translate"),
-        resultBox: findElement("result", "resultBox", "output", "translationResult"),
-        fileNameBox: findElement("fileName", "selectedFile", "file-name")
-    };
-}
+/* =========================
+   CHỌN FILE
+   ========================= */
 
-document.addEventListener("DOMContentLoaded", () => {
-    setupFileInput();
-    setupTranslateButton();
-    console.log("Game Translator VN v0.2.1 đã khởi động.");
-});
+if (fileInput) {
+    fileInput.addEventListener("change", async function () {
 
-function setupFileInput() {
-    const { fileInput, fileNameBox } = getUI();
+        const file = this.files[0];
 
-    if (!fileInput) {
-        console.warn("Không tìm thấy ô chọn file.");
-        return;
-    }
-
-    fileInput.addEventListener("change", async event => {
-        const file = event.target.files?.[0];
-        if (!file) return;
+        if (!file) {
+            output.textContent = "Chưa chọn tệp...";
+            return;
+        }
 
         currentFile = file;
-        if (fileNameBox) fileNameBox.textContent = file.name;
-        showMessage(`Đang đọc: ${file.name}...`);
 
         try {
             originalText = await file.text();
+
             currentData = null;
             extractedTexts = [];
-            translations.clear();
 
-            if (getExtension(file.name) === "json") {
+            output.textContent =
+                `📂 Đã chọn: ${file.name}\n\n` +
+                `Đang phân tích file...`;
+
+            const extension = getExtension(file.name);
+
+            if (extension === "json") {
                 processJSON(originalText);
             } else {
                 processTextFile(originalText);
             }
+
         } catch (error) {
+
             console.error(error);
-            showMessage("❌ Không thể đọc file.");
+
+            output.textContent =
+                "❌ Không thể đọc file.";
         }
     });
 }
 
-function setupTranslateButton() {
-    const { translateButton } = getUI();
+/* =========================
+   NÚT DỊCH
+   ========================= */
 
-    if (!translateButton) {
-        console.warn("Không tìm thấy nút Dịch.");
-        return;
-    }
+if (translateBtn) {
+    translateBtn.addEventListener("click", function () {
 
-    translateButton.addEventListener("click", () => {
         if (!currentFile) {
-            showMessage("⚠️ Hãy chọn file trước.");
+            output.textContent =
+                "⚠️ Hãy chọn file game trước.";
             return;
         }
 
         if (extractedTexts.length === 0) {
-            showMessage("⚠️ Không tìm thấy đoạn text có thể dịch.");
+            output.textContent =
+                "⚠️ Không tìm thấy text có thể dịch.";
             return;
         }
 
-        renderTranslationEditor();
-        showMessage(`Đã tìm thấy ${extractedTexts.length} đoạn text có thể dịch.`);
+        showTranslationEditor();
     });
 }
 
+/* =========================
+   JSON
+   ========================= */
+
 function processJSON(text) {
+
     try {
+
         currentData = JSON.parse(text);
+
         extractedTexts = [];
+
         scanJSON(currentData, []);
-        renderPreview();
-        showMessage(`✅ Đọc JSON thành công: ${extractedTexts.length} đoạn text có thể dịch.`);
+
+        showPreview();
+
     } catch (error) {
+
         console.error(error);
-        showMessage("❌ File JSON không hợp lệ hoặc đã bị lỗi cấu trúc.");
+
+        currentData = null;
+
+        output.textContent =
+            "❌ File JSON không hợp lệ.";
     }
 }
 
+/* =========================
+   QUÉT JSON
+   ========================= */
+
 function scanJSON(value, path) {
+
     if (typeof value === "string") {
-        if (isTranslatableJSONValue(value, path)) {
-            addExtractedText(value, path);
+
+        if (isTranslatable(value, path)) {
+
+            extractedTexts.push({
+                path: [...path],
+                original: value,
+                translation: ""
+            });
         }
+
         return;
     }
 
     if (Array.isArray(value)) {
-        value.forEach((item, index) => scanJSON(item, [...path, index]));
+
+        value.forEach(function (item, index) {
+
+            scanJSON(
+                item,
+                [...path, index]
+            );
+
+        });
+
         return;
     }
 
     if (value && typeof value === "object") {
-        Object.keys(value).forEach(key => scanJSON(value[key], [...path, key]));
+
+        Object.keys(value).forEach(function (key) {
+
+            scanJSON(
+                value[key],
+                [...path, key]
+            );
+
+        });
     }
 }
 
-function addExtractedText(original, path) {
-    const key = pathToString(path);
+/* =========================
+   NHẬN DIỆN TEXT
+   ========================= */
 
-    if (extractedTexts.some(item => pathToString(item.path) === key)) return;
+function isTranslatable(text, path) {
 
-    extractedTexts.push({
-        path: [...path],
-        original,
-        translation: translations.get(key) || ""
-    });
-}
+    const value = text.trim();
 
-function isTranslatableJSONValue(text, path) {
-    const value = String(text).trim();
-    if (!value) return false;
-
-    const key = getLastPathKey(path);
-    const lowerKey = String(key).toLowerCase();
-
-    const blockedKeys = new Set([
-        "id", "code", "type", "nameid", "filename", "file", "src", "url",
-        "iconindex", "characterindex", "faceindex", "battlername",
-        "animationname", "effectname", "variable", "var", "formula",
-        "script", "scriptcall", "note", "meta", "uuid", "guid", "key",
-        "symbol", "command", "eventid", "x", "y", "width", "height",
-        "opacity", "speed", "duration", "delay", "volume", "pitch", "pan"
-    ]);
-
-    if (blockedKeys.has(lowerKey)) return false;
-
-    /* Các tag hiển thị kiểu <Battle Portrait: ...> không đưa ra dịch. */
-    if (/^<[^>]+>$/.test(value)) return false;
-
-    /* Resource/file. */
-    if (/\.(png|jpg|jpeg|gif|webp|bmp|svg|ogg|m4a|wav|mp3|mid|midi|ttf|otf|woff|woff2)$/i.test(value)) {
+    if (!value) {
         return false;
     }
 
-    /* URL/path/mã màu. */
-    if (/^(https?:\/\/|ftp:\/\/|data:|file:\/\/)/i.test(value)) return false;
-    if (/^[A-Za-z]:[\\/]|^(?:\.{0,2}[\\/])/.test(value)) return false;
-    if (/^#[0-9A-F]{3,8}$/i.test(value)) return false;
-
-    /* Công thức/code. */
-    if (isTechnicalExpression(value)) return false;
-
-    /* JSON được lưu bên trong chuỗi. */
-    if ((value.startsWith("{") && value.endsWith("}")) ||
-        (value.startsWith("[") && value.endsWith("]"))) {
+    /* Chỉ số */
+    if (/^[\d\s.,+\-*/%]+$/.test(value)) {
         return false;
     }
 
-    if (/^(true|false|null|undefined|NaN|Infinity)$/i.test(value)) return false;
-    if (/^[\d\s.,+\-*/%]+$/.test(value)) return false;
+    /* true / false / null */
+    if (/^(true|false|null|undefined)$/i.test(value)) {
+        return false;
+    }
 
-    /* ID nội bộ như Actor1_1, Cha_test, Actor_A. */
-    if (isLikelyInternalId(value)) return false;
+    /* Tên file */
+    if (
+        /\.(png|jpg|jpeg|gif|webp|bmp|svg|ogg|m4a|wav|mp3|mid|midi|ttf|otf|woff|woff2)$/i
+            .test(value)
+    ) {
+        return false;
+    }
 
-    /* Escape/control code đứng một mình. */
-    if (/^(?:\\[A-Za-z]+(?:\[[^\]]*\])?)+$/.test(value)) return false;
+    /* URL */
+    if (
+        /^(https?:\/\/|ftp:\/\/|data:)/i.test(value)
+    ) {
+        return false;
+    }
 
-    if (!/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)) return false;
+    /* Tag */
+    if (
+        /^<[^>]+>$/.test(value)
+    ) {
+        return false;
+    }
 
-    if (value.length <= 3 && /^[A-Za-z0-9_.$-]+$/.test(value)) return false;
+    /* Công thức RPG Maker */
+    if (
+        /\b[a-z]\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i
+            .test(value)
+    ) {
+        return false;
+    }
+
+    /* Công thức có toán tử */
+    if (
+        /^[a-zA-Z_$][\w$]*(?:\.[a-zA-Z_$][\w$]*)+\s*[\s\S]*$/
+            .test(value) &&
+        /[+\-*/=]/.test(value)
+    ) {
+        return false;
+    }
+
+    /* Code */
+    if (
+        /^(var|let|const|function|return|if|else|for|while)\b/i
+            .test(value)
+    ) {
+        return false;
+    }
+
+    /* ID kiểu Actor1_1 */
+    if (
+        /^(Actor|Enemy|Item|Weapon|Armor|Skill|State|Class|Map|Event|Troop|Cha|Character|EV)\w*$/i
+            .test(value)
+    ) {
+        return false;
+    }
+
+    /* ID có dấu _ */
+    if (
+        /^[A-Za-z0-9]+_[A-Za-z0-9_]+$/.test(value) &&
+        !/\s/.test(value)
+    ) {
+        return false;
+    }
+
+    /* Escape code đứng riêng */
+    if (
+        /^\\[A-Za-z]+(?:\[[^\]]*\])?$/.test(value)
+    ) {
+        return false;
+    }
+
+    /* Không có chữ */
+    if (
+        !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)
+    ) {
+        return false;
+    }
 
     return true;
 }
 
-function isTechnicalExpression(value) {
-    const patterns = [
-        /\b[a-zA-Z_$][\w$]*\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i,
-        /\b(?:this|self|actor|enemy|target|user)\s*[.[]/i,
-        /\b(?:Math|JSON|Array|String|Number|Object|Date|RegExp)\.[A-Za-z_$]/,
-        /(?:===|!==|==|!=|&&|\|\||=>|\+\+|--|\+=|-=|\*=|\/=)/,
-        /\b(?:var|let|const|function|return|if|else|for|while|switch|case|new)\b/i,
-        /[A-Za-z_$][\w$]*\s*\([^)]*\)\s*(?:;|$)/,
-        /[A-Za-z_$][\w$]*\s*=\s*[^=]/,
-        /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+$/,
-        /^[A-Za-z_$][\w$]*(?:\[[^\]]+\])+$/,
-        /^\s*[A-Za-z_$][\w$]*\s*[*+\-/]\s*[A-Za-z0-9_$.[\]]+\s*$/
-    ];
-
-    return patterns.some(pattern => pattern.test(value));
-}
-
-function isLikelyInternalId(value) {
-    if (/\s/.test(value)) return false;
-
-    if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)) {
-        if (/^(Actor|Enemy|Item|Weapon|Armor|Skill|State|Class|Map|CommonEvent|Event|Troop|Game|System|Vehicle|Battle|Cha|Character|EV|SE|BGM|BGS|ME|SFX)/i.test(value)) {
-            return true;
-        }
-
-        if (/^[A-Za-z]+_\d+$/.test(value)) return true;
-        if (/^[A-Za-z]+\d+_[A-Za-z0-9]+$/.test(value)) return true;
-        if (/^[A-Za-z0-9]+_[A-Za-z0-9_]+$/.test(value)) return true;
-        if (/^[A-Za-z]+(?:\d+){2,}$/.test(value)) return true;
-    }
-
-    return false;
-}
+/* =========================
+   FILE TEXT
+   ========================= */
 
 function processTextFile(text) {
+
     currentData = null;
     extractedTexts = [];
 
-    const extension = getExtension(currentFile?.name || "");
     const lines = text.split(/\r?\n/);
 
-    lines.forEach((line, index) => {
-        const candidate = extractTextFromLine(line, extension);
-        if (!candidate) return;
+    lines.forEach(function (line, index) {
+
+        const clean = line.trim();
+
+        if (!clean) {
+            return;
+        }
+
+        if (
+            /^(#|\/\/|\/\*|\*|;)/.test(clean)
+        ) {
+            return;
+        }
+
+        if (!isTranslatable(clean, ["line", index])) {
+            return;
+        }
 
         extractedTexts.push({
             path: ["line", index],
-            original: candidate.text,
+            original: clean,
             translation: ""
         });
     });
 
-    renderPreview();
-    showMessage(`✅ Đã tìm thấy ${extractedTexts.length} dòng text có thể dịch.`);
+    showPreview();
 }
 
-function extractTextFromLine(line, extension) {
-    const trimmed = line.trim();
+/* =========================
+   PREVIEW
+   ========================= */
 
-    if (!trimmed) return null;
-    if (/^(\/\/|\/\*|\*|#|;)/.test(trimmed)) return null;
+function showPreview() {
 
-    if (extension === "rpy") {
-        const dialogue = trimmed.match(/^(?:[A-Za-z_]\w*\s+)?["'](.+?)["']\s*$/);
-
-        if (dialogue && isTranslatablePlainText(dialogue[1])) {
-            return { text: dialogue[1] };
-        }
-
-        const assignment = trimmed.match(/=\s*["'](.+?)["']\s*$/);
-
-        if (assignment && isTranslatablePlainText(assignment[1])) {
-            return { text: assignment[1] };
-        }
-
-        return null;
+    if (!output) {
+        return;
     }
-
-    if (extension === "ks") {
-        const textPart = trimmed.replace(/^\[[^\]]+\]\s*/, "");
-
-        if (isTranslatablePlainText(textPart)) {
-            return { text: textPart };
-        }
-
-        return null;
-    }
-
-    if (extension === "xml") {
-        const match = line.match(/>([^<>]+)</);
-
-        if (match && isTranslatablePlainText(match[1].trim())) {
-            return { text: match[1].trim() };
-        }
-
-        return null;
-    }
-
-    if (extension === "js") {
-        const match = trimmed.match(
-            /^(?:const|let|var)\s+\w+\s*=\s*["'](.+?)["']\s*;?$/
-        );
-
-        if (match && isTranslatablePlainText(match[1])) {
-            return { text: match[1] };
-        }
-
-        return null;
-    }
-
-    if (isTranslatablePlainText(trimmed)) {
-        return { text: trimmed };
-    }
-
-    return null;
-}
-
-function isTranslatablePlainText(value) {
-    if (!value || !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)) {
-        return false;
-    }
-
-    if (isTechnicalExpression(value)) return false;
-    if (isLikelyInternalId(value)) return false;
-    if (/^<[^>]+>$/.test(value)) return false;
-    if (/\.(png|jpg|jpeg|gif|webp|ogg|wav|mp3|ttf|otf)$/i.test(value)) {
-        return false;
-    }
-
-    return true;
-}
-
-function renderPreview() {
-    const { resultBox } = getUI();
-
-    if (!resultBox) return;
 
     if (extractedTexts.length === 0) {
-        resultBox.innerHTML = "<p>Không tìm thấy text có thể dịch.</p>";
+
+        output.textContent =
+            "Không tìm thấy text có thể dịch.";
+
         return;
     }
 
-    const preview = extractedTexts.slice(0, 100).map((item, index) => `
-        <div class="gt-row">
-            <div class="gt-number">${index + 1}</div>
-            <div class="gt-original">${escapeHTML(item.original)}</div>
-        </div>
-    `).join("");
+    let html = "";
 
-    resultBox.innerHTML = `
-        <div class="gt-header">
-            <strong>Text cần dịch: ${extractedTexts.length}</strong>
-            <small>Hiển thị 100 mục đầu tiên</small>
-        </div>
-        <div class="gt-list">${preview}</div>
-    `;
+    html +=
+        "📋 TEXT TÌM THẤY: " +
+        extractedTexts.length +
+        "\n\n";
+
+    const limit =
+        Math.min(
+            extractedTexts.length,
+            100
+        );
+
+    for (let i = 0; i < limit; i++) {
+
+        html +=
+            `${i + 1}. ${extractedTexts[i].original}\n`;
+    }
+
+    if (extractedTexts.length > 100) {
+
+        html +=
+            `\n... và ${
+                extractedTexts.length - 100
+            } text khác.`;
+    }
+
+    output.textContent = html;
 }
 
-function renderTranslationEditor() {
-    const { resultBox } = getUI();
+/* =========================
+   GIAO DIỆN DỊCH
+   ========================= */
 
-    if (!resultBox) return;
+function showTranslationEditor() {
 
-    resultBox.innerHTML = "";
+    output.innerHTML = "";
 
-    const container = document.createElement("div");
-    container.className = "gt-editor";
+    const title =
+        document.createElement("div");
 
-    const title = document.createElement("div");
+    title.innerHTML =
+        "<h3>🇻🇳 Dịch file game</h3>" +
+        "<p>Text gốc bên trái — Bản dịch bên phải</p>";
 
-    title.innerHTML = `
-        <h3>🇻🇳 Bản dịch</h3>
-        <p>Chỉ dịch phần văn bản. Không thay đổi code, ID hoặc cấu trúc file.</p>
-    `;
+    output.appendChild(title);
 
-    container.appendChild(title);
+    const editor =
+        document.createElement("div");
 
-    extractedTexts.forEach((item, index) => {
-        const row = document.createElement("div");
-        row.className = "gt-edit-row";
+    editor.className =
+        "gt-editor";
 
-        const left = document.createElement("textarea");
-        left.className = "gt-original-input";
-        left.value = item.original;
-        left.readOnly = true;
-        left.setAttribute("aria-label", `Văn bản gốc ${index + 1}`);
+    extractedTexts.forEach(function (item, index) {
 
-        const right = document.createElement("textarea");
-        right.className = "gt-translation-input";
-        right.placeholder = "Nhập bản dịch tiếng Việt...";
-        right.value = item.translation || "";
-        right.setAttribute("aria-label", `Bản dịch ${index + 1}`);
+        const row =
+            document.createElement("div");
 
-        right.addEventListener("input", () => {
-            item.translation = right.value;
-            translations.set(pathToString(item.path), right.value);
-        });
+        row.className =
+            "gt-edit-row";
 
-        row.appendChild(left);
-        row.appendChild(right);
-        container.appendChild(row);
+        const number =
+            document.createElement("div");
+
+        number.textContent =
+            index + 1;
+
+        number.className =
+            "gt-number";
+
+        const original =
+            document.createElement("textarea");
+
+        original.className =
+            "gt-original-input";
+
+        original.value =
+            item.original;
+
+        original.readOnly = true;
+
+        const translation =
+            document.createElement("textarea");
+
+        translation.className =
+            "gt-translation-input";
+
+        translation.placeholder =
+            "Nhập bản dịch tiếng Việt...";
+
+        translation.addEventListener(
+            "input",
+            function () {
+
+                item.translation =
+                    translation.value;
+            }
+        );
+
+        row.appendChild(number);
+        row.appendChild(original);
+        row.appendChild(translation);
+
+        editor.appendChild(row);
     });
 
-    const exportButton = document.createElement("button");
+    output.appendChild(editor);
 
-    exportButton.type = "button";
-    exportButton.textContent = "💾 Xuất file đã dịch";
-    exportButton.className = "gt-export-button";
-    exportButton.addEventListener("click", exportTranslatedFile);
+    const exportButton =
+        document.createElement("button");
 
-    container.appendChild(exportButton);
-    resultBox.appendChild(container);
+    exportButton.textContent =
+        "💾 Xuất file đã dịch";
+
+    exportButton.className =
+        "gt-export-button";
+
+    exportButton.addEventListener(
+        "click",
+        exportTranslatedFile
+    );
+
+    output.appendChild(exportButton);
 }
 
+/* =========================
+   XUẤT FILE
+   ========================= */
+
 function exportTranslatedFile() {
+
     if (!currentFile) {
-        showMessage("⚠️ Chưa có file.");
         return;
     }
 
-    let outputText;
+    let result = "";
 
     if (currentData !== null) {
-        const clonedData = deepClone(currentData);
 
-        extractedTexts.forEach(item => {
-            if (item.translation?.trim()) {
-                setValueByPath(
-                    clonedData,
+        const cloned =
+            JSON.parse(
+                JSON.stringify(currentData)
+            );
+
+        extractedTexts.forEach(function (item) {
+
+            if (
+                item.translation &&
+                item.translation.trim()
+            ) {
+
+                setValue(
+                    cloned,
                     item.path,
-                    preserveSpecialCodes(
+                    preserveCodes(
                         item.original,
                         item.translation
                     )
@@ -435,194 +492,268 @@ function exportTranslatedFile() {
             }
         });
 
-        outputText = JSON.stringify(clonedData, null, 2);
+        result =
+            JSON.stringify(
+                cloned,
+                null,
+                2
+            );
+
     } else {
-        outputText = exportTextFile();
+
+        result =
+            exportText();
     }
 
     downloadFile(
-        makeTranslatedFileName(currentFile.name),
-        outputText
+        makeFileName(currentFile.name),
+        result
     );
-
-    showMessage("✅ Đã tạo file bản dịch.");
 }
 
-function exportTextFile() {
-    const extension = getExtension(currentFile?.name || "");
-    const lines = originalText.split(/\r?\n/);
+/* =========================
+   XUẤT FILE TEXT
+   ========================= */
 
-    [...extractedTexts]
-        .filter(item => item.translation?.trim())
-        .sort((a, b) => b.path[1] - a.path[1])
-        .forEach(item => {
-            const lineIndex = item.path[1];
+function exportText() {
 
-            if (lineIndex < 0 || lineIndex >= lines.length) return;
+    const lines =
+        originalText.split(/\r?\n/);
 
-            const translated = preserveSpecialCodes(
-                item.original,
-                item.translation
-            );
-
-            if (extension === "rpy" || extension === "js") {
-                lines[lineIndex] = replaceQuotedValue(
-                    lines[lineIndex],
-                    item.original,
-                    translated
+    const items =
+        extractedTexts
+            .filter(function (item) {
+                return (
+                    item.translation &&
+                    item.translation.trim()
                 );
-            } else {
-                const index = lines[lineIndex].indexOf(item.original);
+            })
+            .sort(function (a, b) {
+                return b.path[1] - a.path[1];
+            });
 
-                if (index !== -1) {
-                    lines[lineIndex] =
-                        lines[lineIndex].slice(0, index) +
-                        translated +
-                        lines[lineIndex].slice(index + item.original.length);
-                }
-            }
-        });
+    items.forEach(function (item) {
 
-    return lines.join("\n");
-}
-
-function replaceQuotedValue(line, original, translated) {
-    const escaped = escapeRegExp(original);
-    const pattern = new RegExp(`(["'])${escaped}\\1`);
-
-    if (!pattern.test(line)) return line;
-
-    return line.replace(
-        pattern,
-        (_, quote) => `${quote}${translated}${quote}`
-    );
-}
-
-function preserveSpecialCodes(original, translated) {
-    const result = translated;
-
-    const codes = [
-        ...(original.match(/%[0-9]+/g) || []),
-        ...(original.match(/\\[A-Za-z]+(?:\[[^\]]*\])?/g) || [])
-    ];
-
-    [...new Set(codes)].forEach(code => {
-        if (!result.includes(code)) {
-            console.warn("Bản dịch thiếu code:", code);
-        }
-    });
-
-    return result;
-}
-
-function setValueByPath(object, path, value) {
-    if (!path.length) return;
-
-    let current = object;
-
-    for (let i = 0; i < path.length - 1; i++) {
-        const key = path[i];
+        const lineIndex =
+            item.path[1];
 
         if (
-            current === null ||
-            current === undefined ||
-            current[key] === undefined ||
-            current[key] === null
+            lineIndex < 0 ||
+            lineIndex >= lines.length
         ) {
             return;
         }
 
-        current = current[key];
+        const originalLine =
+            lines[lineIndex];
+
+        const translated =
+            preserveCodes(
+                item.original,
+                item.translation
+            );
+
+        const position =
+            originalLine.indexOf(
+                item.original
+            );
+
+        if (position !== -1) {
+
+            lines[lineIndex] =
+                originalLine.slice(
+                    0,
+                    position
+                ) +
+                translated +
+                originalLine.slice(
+                    position +
+                    item.original.length
+                );
+        }
+    });
+
+    return lines.join("\n");
+}
+
+/* =========================
+   GIỮ CODE
+   ========================= */
+
+function preserveCodes(
+    original,
+    translated
+) {
+
+    const codes =
+        original.match(
+            /%[0-9]+|\\[A-Za-z]+(?:\[[^\]]*\])?/g
+        ) || [];
+
+    codes.forEach(function (code) {
+
+        if (!translated.includes(code)) {
+
+            console.warn(
+                "Bản dịch thiếu code:",
+                code
+            );
+        }
+    });
+
+    return translated;
+}
+
+/* =========================
+   SET VALUE JSON
+   ========================= */
+
+function setValue(
+    object,
+    path,
+    value
+) {
+
+    if (!path.length) {
+        return;
     }
 
-    if (current !== null && current !== undefined) {
-        current[path[path.length - 1]] = value;
+    let current =
+        object;
+
+    for (
+        let i = 0;
+        i < path.length - 1;
+        i++
+    ) {
+
+        if (
+            current === null ||
+            current === undefined
+        ) {
+            return;
+        }
+
+        current =
+            current[path[i]];
+    }
+
+    if (
+        current !== null &&
+        current !== undefined
+    ) {
+
+        current[
+            path[path.length - 1]
+        ] = value;
     }
 }
 
-function deepClone(data) {
-    return JSON.parse(JSON.stringify(data));
-}
+/* =========================
+   DOWNLOAD
+   ========================= */
 
-function downloadFile(filename, content) {
-    const blob = new Blob(
-        [content],
-        { type: "application/octet-stream" }
-    );
+function downloadFile(
+    filename,
+    content
+) {
 
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
+    const blob =
+        new Blob(
+            [content],
+            {
+                type:
+                    "application/octet-stream"
+            }
+        );
+
+    const url =
+        URL.createObjectURL(blob);
+
+    const link =
+        document.createElement("a");
 
     link.href = url;
     link.download = filename;
 
     document.body.appendChild(link);
+
     link.click();
+
     link.remove();
 
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
+    setTimeout(
+        function () {
+            URL.revokeObjectURL(url);
+        },
+        1000
+    );
 }
 
-function makeTranslatedFileName(filename) {
-    const dot = filename.lastIndexOf(".");
+/* =========================
+   TÊN FILE
+   ========================= */
+
+function makeFileName(
+    filename
+) {
+
+    const dot =
+        filename.lastIndexOf(".");
 
     if (dot === -1) {
-        return `${filename}_vi`;
+        return filename + "_vi";
     }
 
-    return filename.slice(0, dot) + "_vi" + filename.slice(dot);
-}
-
-function pathToString(path) {
-    return path.map(part => `[${String(part)}]`).join(".");
-}
-
-function getExtension(filename) {
-    const dot = filename.lastIndexOf(".");
-
-    if (dot === -1) return "";
-
-    return filename.slice(dot + 1).toLowerCase();
-}
-
-function escapeRegExp(value) {
-    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-}
-
-function escapeHTML(value) {
-    return String(value)
-        .replace(/&/g, "&amp;")
-        .replace(/</g, "&lt;")
-        .replace(/>/g, "&gt;")
-        .replace(/"/g, "&quot;")
-        .replace(/'/g, "&#039;");
-}
-
-function showMessage(message) {
-    console.log(message);
-
-    const status = findElement(
-        "status",
-        "message",
-        "statusMessage"
+    return (
+        filename.slice(0, dot) +
+        "_vi" +
+        filename.slice(dot)
     );
-
-    if (status) {
-        status.textContent = message;
-    }
 }
 
-document.addEventListener("keydown", event => {
-    if (
-        event.ctrlKey &&
-        event.key.toLowerCase() === "o"
-    ) {
-        event.preventDefault();
+/* =========================
+   EXTENSION
+   ========================= */
 
-        const { fileInput } = getUI();
+function getExtension(
+    filename
+) {
 
-        if (fileInput) {
-            fileInput.click();
+    const dot =
+        filename.lastIndexOf(".");
+
+    if (dot === -1) {
+        return "";
+    }
+
+    return filename
+        .slice(dot + 1)
+        .toLowerCase();
+}
+
+/* =========================
+   PHÍM TẮT CTRL + O
+   ========================= */
+
+document.addEventListener(
+    "keydown",
+    function (event) {
+
+        if (
+            event.ctrlKey &&
+            event.key.toLowerCase() === "o"
+        ) {
+
+            event.preventDefault();
+
+            if (fileInput) {
+                fileInput.click();
+            }
         }
     }
-});
+);
+
+console.log(
+    "🎮 Game Translator VN v0.2.1 đang chạy."
+);
