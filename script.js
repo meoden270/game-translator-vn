@@ -398,7 +398,9 @@ requestAnimationFrame(function () {
     autoResize(translation);
 });
 
-    const exportButton =
+}); // đóng forEach
+
+const exportButton =
         document.createElement("button");
 
     exportButton.textContent =
