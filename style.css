@@ -1,5 +1,5 @@
 /* =========================================================
-   GAME TRANSLATOR VN - v0.2.1
+   GAME TRANSLATOR VN - v0.2.2
    GIAO DIỆN DỊCH DỌC
    ========================================================= */
 
@@ -168,14 +168,16 @@ h1 {
     display: block;
 
     width: 100%;
-    min-height: 65px;
-    height: auto;
+
+    /* Khoảng 30 dòng */
+    min-height: 450px;
+    height: 450px;
 
     margin: 0 0 10px;
     padding: 12px;
 
     resize: none;
-    overflow: hidden;
+    overflow-y: auto;
 
     background: #242424;
     color: #eee;
@@ -199,14 +201,16 @@ h1 {
     display: block;
 
     width: 100%;
-    min-height: 80px;
-    height: auto;
+
+    /* Khoảng 30 dòng */
+    min-height: 450px;
+    height: 450px;
 
     margin: 0;
     padding: 12px;
 
     resize: none;
-    overflow: hidden;
+    overflow-y: auto;
 
     background: #0f0f0f;
     color: #fff;
@@ -307,7 +311,7 @@ h1 {
 }
 
 /* =========================
-   MOBILE
+   MOBILE - ĐIỆN THOẠI
    ========================= */
 
 @media (max-width: 600px) {
@@ -329,13 +333,25 @@ h1 {
         margin-bottom: 14px;
     }
 
+    /* Ô gốc khoảng 30 dòng */
     .gt-original-input {
-        min-height: 62px;
+        min-height: 450px;
+        height: 450px;
+
         font-size: 13px;
+        line-height: 1.45;
+
+        overflow-y: auto;
     }
 
+    /* Ô dịch khoảng 30 dòng */
     .gt-translation-input {
-        min-height: 75px;
+        min-height: 450px;
+        height: 450px;
+
         font-size: 13px;
+        line-height: 1.45;
+
+        overflow-y: auto;
     }
-       }
+   }
