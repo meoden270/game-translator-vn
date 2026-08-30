@@ -393,8 +393,10 @@ function showTranslationEditor() {
 
         editor.appendChild(row);
 
-        autoResize(original);
-    });
+requestAnimationFrame(function () {
+    autoResize(original);
+    autoResize(translation);
+});
 
     const exportButton =
         document.createElement("button");
@@ -427,14 +429,9 @@ function autoResize(element) {
 
     if (!element) return;
 
-    element.style.height = "0px";
-
-    element.style.height =
-        Math.max(
-            element.scrollHeight,
-            45
-        ) + "px";
-}
+    element.style.height = "auto";
+    element.style.height = element.scrollHeight + "px";
+    }
 
 /* =========================
    XUẤT FILE
