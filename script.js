@@ -1,33 +1,21 @@
 /* =========================================================
-   GAME TRANSLATOR VN - v0.2
+   GAME TRANSLATOR VN - v0.2.1
    ---------------------------------------------------------
-   Chức năng:
-   - Đọc file game
-   - Hỗ trợ JSON / TXT / RPY / KS / JS / XML cơ bản
-   - Với JSON:
-       + Giữ nguyên toàn bộ cấu trúc
-       + Chỉ xử lý chuỗi text
-       + Không đụng vào số, boolean, key, công thức...
-   - Hiển thị danh sách text có thể dịch
-   - Cho phép sửa bản dịch thủ công
-   - Xuất file đã dịch
+   - Lọc text RPG Maker JSON tốt hơn
+   - Bỏ ID, tên resource, tag/plugin, công thức và giá trị nội bộ
+   - Ưu tiên thoại, lựa chọn, tên, mô tả và text tự nhiên
+   - Giữ nguyên cấu trúc JSON
+   - Với file text: chỉ thay đúng phần text được nhận diện
+   - Không tự động gọi API
    ========================================================= */
 
 "use strict";
-
-/* =========================
-   BIẾN CHÍNH
-   ========================= */
 
 let currentFile = null;
 let originalText = "";
 let currentData = null;
 let extractedTexts = [];
 let translations = new Map();
-
-/* =========================
-   TÌM ELEMENT TRONG HTML
-   ========================= */
 
 function findElement(...ids) {
     for (const id of ids) {
@@ -37,67 +25,48 @@ function findElement(...ids) {
     return null;
 }
 
-const fileInput =
-    findElement("fileInput", "file", "uploadFile", "fileUpload");
-
-const translateButton =
-    findElement("translateButton", "translateBtn", "translate");
-
-const resultBox =
-    findElement("result", "resultBox", "output", "translationResult");
-
-const fileNameBox =
-    findElement("fileName", "selectedFile", "file-name");
-
-/* =========================
-   KHỞI TẠO
-   ========================= */
+function getUI() {
+    return {
+        fileInput: findElement("fileInput", "file", "uploadFile", "fileUpload"),
+        translateButton: findElement("translateButton", "translateBtn", "translate"),
+        resultBox: findElement("result", "resultBox", "output", "translationResult"),
+        fileNameBox: findElement("fileName", "selectedFile", "file-name")
+    };
+}
 
 document.addEventListener("DOMContentLoaded", () => {
     setupFileInput();
     setupTranslateButton();
-
-    console.log("Game Translator VN v0.2 đã khởi động.");
+    console.log("Game Translator VN v0.2.1 đã khởi động.");
 });
 
-/* =========================
-   FILE INPUT
-   ========================= */
-
 function setupFileInput() {
+    const { fileInput, fileNameBox } = getUI();
+
     if (!fileInput) {
         console.warn("Không tìm thấy ô chọn file.");
         return;
     }
 
-    fileInput.addEventListener("change", async (event) => {
+    fileInput.addEventListener("change", async event => {
         const file = event.target.files?.[0];
-
         if (!file) return;
 
         currentFile = file;
-
-        if (fileNameBox) {
-            fileNameBox.textContent = file.name;
-        }
-
+        if (fileNameBox) fileNameBox.textContent = file.name;
         showMessage(`Đang đọc: ${file.name}...`);
 
         try {
             originalText = await file.text();
-
             currentData = null;
             extractedTexts = [];
             translations.clear();
 
-            const extension = getExtension(file.name);
-
-            if (extension === "json") {
+            if (getExtension(file.name) === "json") {
                 processJSON(originalText);
             } else {
                 processTextFile(originalText);
             }
-
         } catch (error) {
             console.error(error);
             showMessage("❌ Không thể đọc file.");
@@ -105,408 +74,356 @@ function setupFileInput() {
     });
 }
 
-/* =========================
-   NÚT DỊCH
-   ========================= */
-
 function setupTranslateButton() {
+    const { translateButton } = getUI();
+
     if (!translateButton) {
         console.warn("Không tìm thấy nút Dịch.");
         return;
     }
 
-    translateButton.addEventListener("click", async () => {
-
+    translateButton.addEventListener("click", () => {
         if (!currentFile) {
             showMessage("⚠️ Hãy chọn file trước.");
             return;
         }
 
         if (extractedTexts.length === 0) {
-            showMessage("⚠️ Không tìm thấy đoạn text để dịch.");
+            showMessage("⚠️ Không tìm thấy đoạn text có thể dịch.");
             return;
         }
 
-        /*
-         * v0.2 chưa gọi API tự động.
-         *
-         * Thay vì tự ý phá file bằng một API không ổn định,
-         * ta hiển thị danh sách text để kiểm tra/chỉnh sửa.
-         */
-
         renderTranslationEditor();
-
-        showMessage(
-            `Đã tìm thấy ${extractedTexts.length} đoạn text.`
-        );
+        showMessage(`Đã tìm thấy ${extractedTexts.length} đoạn text có thể dịch.`);
     });
 }
 
-/* =========================
-   XỬ LÝ JSON
-   ========================= */
-
 function processJSON(text) {
-
     try {
         currentData = JSON.parse(text);
-
         extractedTexts = [];
-
-        scanJSON(
-            currentData,
-            []
-        );
-
+        scanJSON(currentData, []);
         renderPreview();
-
-        showMessage(
-            `✅ Đọc JSON thành công: ${extractedTexts.length} đoạn text có thể dịch.`
-        );
-
+        showMessage(`✅ Đọc JSON thành công: ${extractedTexts.length} đoạn text có thể dịch.`);
     } catch (error) {
-
         console.error(error);
-
-        showMessage(
-            "❌ File JSON không hợp lệ hoặc đã bị lỗi cấu trúc."
-        );
+        showMessage("❌ File JSON không hợp lệ hoặc đã bị lỗi cấu trúc.");
     }
 }
 
-/* =========================
-   QUÉT JSON
-   ========================= */
-
 function scanJSON(value, path) {
-
     if (typeof value === "string") {
-
-        if (isTranslatableText(value)) {
-
-            extractedTexts.push({
-                path: [...path],
-                original: value,
-                translation: translations.get(
-                    pathToString(path)
-                ) || ""
-            });
+        if (isTranslatableJSONValue(value, path)) {
+            addExtractedText(value, path);
         }
-
         return;
     }
 
     if (Array.isArray(value)) {
-
-        value.forEach((item, index) => {
-
-            scanJSON(
-                item,
-                [...path, index]
-            );
-
-        });
-
+        value.forEach((item, index) => scanJSON(item, [...path, index]));
         return;
     }
 
     if (value && typeof value === "object") {
-
-        Object.keys(value).forEach(key => {
-
-            /*
-             * Không quét key JSON.
-             * Chỉ quét VALUE.
-             */
-
-            scanJSON(
-                value[key],
-                [...path, key]
-            );
-
-        });
+        Object.keys(value).forEach(key => scanJSON(value[key], [...path, key]));
     }
 }
 
-/* =========================
-   NHẬN DIỆN TEXT
-   ========================= */
+function addExtractedText(original, path) {
+    const key = pathToString(path);
 
-function isTranslatableText(text) {
+    if (extractedTexts.some(item => pathToString(item.path) === key)) return;
 
-    const value = text.trim();
+    extractedTexts.push({
+        path: [...path],
+        original,
+        translation: translations.get(key) || ""
+    });
+}
 
-    /*
-     * Bỏ chuỗi rỗng
-     */
-
+function isTranslatableJSONValue(text, path) {
+    const value = String(text).trim();
     if (!value) return false;
 
-    /*
-     * Bỏ số thuần túy
-     */
+    const key = getLastPathKey(path);
+    const lowerKey = String(key).toLowerCase();
 
-    if (/^[\d\s.,+\-*/%]+$/.test(value)) {
+    const blockedKeys = new Set([
+        "id", "code", "type", "nameid", "filename", "file", "src", "url",
+        "iconindex", "characterindex", "faceindex", "battlername",
+        "animationname", "effectname", "variable", "var", "formula",
+        "script", "scriptcall", "note", "meta", "uuid", "guid", "key",
+        "symbol", "command", "eventid", "x", "y", "width", "height",
+        "opacity", "speed", "duration", "delay", "volume", "pitch", "pan"
+    ]);
+
+    if (blockedKeys.has(lowerKey)) return false;
+
+    /* Các tag hiển thị kiểu <Battle Portrait: ...> không đưa ra dịch. */
+    if (/^<[^>]+>$/.test(value)) return false;
+
+    /* Resource/file. */
+    if (/\.(png|jpg|jpeg|gif|webp|bmp|svg|ogg|m4a|wav|mp3|mid|midi|ttf|otf|woff|woff2)$/i.test(value)) {
         return false;
     }
 
-    /*
-     * Bỏ công thức RPG Maker.
-     *
-     * Ví dụ:
-     * a.atk * 4 - b.def * 2
-     * 100 + a.mat * 2 - b.mdf * 2
-     */
+    /* URL/path/mã màu. */
+    if (/^(https?:\/\/|ftp:\/\/|data:|file:\/\/)/i.test(value)) return false;
+    if (/^[A-Za-z]:[\\/]|^(?:\.{0,2}[\\/])/.test(value)) return false;
+    if (/^#[0-9A-F]{3,8}$/i.test(value)) return false;
 
-    if (
-        /\b[a-z]\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i.test(value)
-    ) {
+    /* Công thức/code. */
+    if (isTechnicalExpression(value)) return false;
+
+    /* JSON được lưu bên trong chuỗi. */
+    if ((value.startsWith("{") && value.endsWith("}")) ||
+        (value.startsWith("[") && value.endsWith("]"))) {
         return false;
     }
 
-    /*
-     * Bỏ tên file/resource phổ biến
-     */
+    if (/^(true|false|null|undefined|NaN|Infinity)$/i.test(value)) return false;
+    if (/^[\d\s.,+\-*/%]+$/.test(value)) return false;
 
-    if (
-        /\.(png|jpg|jpeg|webp|ogg|m4a|wav|mp3|mid|midi|ttf|otf)$/i.test(value)
-    ) {
-        return false;
-    }
+    /* ID nội bộ như Actor1_1, Cha_test, Actor_A. */
+    if (isLikelyInternalId(value)) return false;
 
-    /*
-     * Bỏ tên event kiểu EV001
-     */
+    /* Escape/control code đứng một mình. */
+    if (/^(?:\\[A-Za-z]+(?:\[[^\]]*\])?)+$/.test(value)) return false;
 
-    if (/^EV\d+$/i.test(value)) {
-        return false;
-    }
+    if (!/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)) return false;
 
-    /*
-     * Bỏ chuỗi giống ID nội bộ
-     */
+    if (value.length <= 3 && /^[A-Za-z0-9_.$-]+$/.test(value)) return false;
 
-    if (
-        /^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value) &&
-        value.length < 25
-    ) {
-        /*
-         * Những từ đơn vẫn có thể là text.
-         * Chỉ bỏ những chuỗi rõ ràng là mã.
-         */
-        if (
-            /^(true|false|null|undefined)$/i.test(value)
-        ) {
-            return false;
+    return true;
+}
+
+function isTechnicalExpression(value) {
+    const patterns = [
+        /\b[a-zA-Z_$][\w$]*\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i,
+        /\b(?:this|self|actor|enemy|target|user)\s*[.[]/i,
+        /\b(?:Math|JSON|Array|String|Number|Object|Date|RegExp)\.[A-Za-z_$]/,
+        /(?:===|!==|==|!=|&&|\|\||=>|\+\+|--|\+=|-=|\*=|\/=)/,
+        /\b(?:var|let|const|function|return|if|else|for|while|switch|case|new)\b/i,
+        /[A-Za-z_$][\w$]*\s*\([^)]*\)\s*(?:;|$)/,
+        /[A-Za-z_$][\w$]*\s*=\s*[^=]/,
+        /^[A-Za-z_$][\w$]*(?:\.[A-Za-z_$][\w$]*)+$/,
+        /^[A-Za-z_$][\w$]*(?:\[[^\]]+\])+$/,
+        /^\s*[A-Za-z_$][\w$]*\s*[*+\-/]\s*[A-Za-z0-9_$.[\]]+\s*$/
+    ];
+
+    return patterns.some(pattern => pattern.test(value));
+}
+
+function isLikelyInternalId(value) {
+    if (/\s/.test(value)) return false;
+
+    if (/^[A-Za-z_$][A-Za-z0-9_$]*$/.test(value)) {
+        if (/^(Actor|Enemy|Item|Weapon|Armor|Skill|State|Class|Map|CommonEvent|Event|Troop|Game|System|Vehicle|Battle|Cha|Character|EV|SE|BGM|BGS|ME|SFX)/i.test(value)) {
+            return true;
         }
-    }
 
-    /*
-     * Bỏ escape/control code nếu toàn bộ chuỗi chỉ chứa code.
-     */
-
-    if (/^\\[A-Za-z]+$/.test(value)) {
-        return false;
-    }
-
-    /*
-     * Nếu có chữ cái hoặc chữ CJK thì coi là text.
-     */
-
-    if (/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ]/.test(value)) {
-        return true;
+        if (/^[A-Za-z]+_\d+$/.test(value)) return true;
+        if (/^[A-Za-z]+\d+_[A-Za-z0-9]+$/.test(value)) return true;
+        if (/^[A-Za-z0-9]+_[A-Za-z0-9_]+$/.test(value)) return true;
+        if (/^[A-Za-z]+(?:\d+){2,}$/.test(value)) return true;
     }
 
     return false;
 }
 
-/* =========================
-   XỬ LÝ FILE TEXT
-   ========================= */
-
 function processTextFile(text) {
-
     currentData = null;
-
     extractedTexts = [];
 
+    const extension = getExtension(currentFile?.name || "");
     const lines = text.split(/\r?\n/);
 
     lines.forEach((line, index) => {
-
-        const clean = line.trim();
-
-        if (!isTranslatableText(clean)) {
-            return;
-        }
+        const candidate = extractTextFromLine(line, extension);
+        if (!candidate) return;
 
         extractedTexts.push({
             path: ["line", index],
-            original: clean,
+            original: candidate.text,
             translation: ""
         });
     });
 
     renderPreview();
-
-    showMessage(
-        `✅ Đã tìm thấy ${extractedTexts.length} dòng text.`
-    );
+    showMessage(`✅ Đã tìm thấy ${extractedTexts.length} dòng text có thể dịch.`);
 }
 
-/* =========================
-   HIỂN THỊ PREVIEW
-   ========================= */
+function extractTextFromLine(line, extension) {
+    const trimmed = line.trim();
+
+    if (!trimmed) return null;
+    if (/^(\/\/|\/\*|\*|#|;)/.test(trimmed)) return null;
+
+    if (extension === "rpy") {
+        const dialogue = trimmed.match(/^(?:[A-Za-z_]\w*\s+)?["'](.+?)["']\s*$/);
+
+        if (dialogue && isTranslatablePlainText(dialogue[1])) {
+            return { text: dialogue[1] };
+        }
+
+        const assignment = trimmed.match(/=\s*["'](.+?)["']\s*$/);
+
+        if (assignment && isTranslatablePlainText(assignment[1])) {
+            return { text: assignment[1] };
+        }
+
+        return null;
+    }
+
+    if (extension === "ks") {
+        const textPart = trimmed.replace(/^\[[^\]]+\]\s*/, "");
+
+        if (isTranslatablePlainText(textPart)) {
+            return { text: textPart };
+        }
+
+        return null;
+    }
+
+    if (extension === "xml") {
+        const match = line.match(/>([^<>]+)</);
+
+        if (match && isTranslatablePlainText(match[1].trim())) {
+            return { text: match[1].trim() };
+        }
+
+        return null;
+    }
+
+    if (extension === "js") {
+        const match = trimmed.match(
+            /^(?:const|let|var)\s+\w+\s*=\s*["'](.+?)["']\s*;?$/
+        );
+
+        if (match && isTranslatablePlainText(match[1])) {
+            return { text: match[1] };
+        }
+
+        return null;
+    }
+
+    if (isTranslatablePlainText(trimmed)) {
+        return { text: trimmed };
+    }
+
+    return null;
+}
+
+function isTranslatablePlainText(value) {
+    if (!value || !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)) {
+        return false;
+    }
+
+    if (isTechnicalExpression(value)) return false;
+    if (isLikelyInternalId(value)) return false;
+    if (/^<[^>]+>$/.test(value)) return false;
+    if (/\.(png|jpg|jpeg|gif|webp|ogg|wav|mp3|ttf|otf)$/i.test(value)) {
+        return false;
+    }
+
+    return true;
+}
 
 function renderPreview() {
+    const { resultBox } = getUI();
 
     if (!resultBox) return;
 
     if (extractedTexts.length === 0) {
-
-        resultBox.innerHTML =
-            "<p>Không tìm thấy text có thể dịch.</p>";
-
+        resultBox.innerHTML = "<p>Không tìm thấy text có thể dịch.</p>";
         return;
     }
 
-    const preview = extractedTexts
-        .slice(0, 100)
-        .map((item, index) => {
-
-            return `
-                <div class="gt-row">
-                    <div class="gt-number">${index + 1}</div>
-                    <div class="gt-original">
-                        ${escapeHTML(item.original)}
-                    </div>
-                </div>
-            `;
-
-        })
-        .join("");
+    const preview = extractedTexts.slice(0, 100).map((item, index) => `
+        <div class="gt-row">
+            <div class="gt-number">${index + 1}</div>
+            <div class="gt-original">${escapeHTML(item.original)}</div>
+        </div>
+    `).join("");
 
     resultBox.innerHTML = `
         <div class="gt-header">
-            <strong>Text tìm thấy: ${extractedTexts.length}</strong>
+            <strong>Text cần dịch: ${extractedTexts.length}</strong>
             <small>Hiển thị 100 mục đầu tiên</small>
         </div>
-
-        <div class="gt-list">
-            ${preview}
-        </div>
+        <div class="gt-list">${preview}</div>
     `;
 }
 
-/* =========================
-   GIAO DIỆN CHỈNH BẢN DỊCH
-   ========================= */
-
 function renderTranslationEditor() {
+    const { resultBox } = getUI();
 
     if (!resultBox) return;
 
     resultBox.innerHTML = "";
 
     const container = document.createElement("div");
-
     container.className = "gt-editor";
 
     const title = document.createElement("div");
 
     title.innerHTML = `
         <h3>🇻🇳 Bản dịch</h3>
-        <p>
-            Nhập bản dịch ở cột bên phải.
-            Code và cấu trúc file sẽ được giữ nguyên.
-        </p>
+        <p>Chỉ dịch phần văn bản. Không thay đổi code, ID hoặc cấu trúc file.</p>
     `;
 
     container.appendChild(title);
 
     extractedTexts.forEach((item, index) => {
-
         const row = document.createElement("div");
-
         row.className = "gt-edit-row";
 
         const left = document.createElement("textarea");
-
         left.className = "gt-original-input";
         left.value = item.original;
         left.readOnly = true;
+        left.setAttribute("aria-label", `Văn bản gốc ${index + 1}`);
 
         const right = document.createElement("textarea");
-
         right.className = "gt-translation-input";
-
         right.placeholder = "Nhập bản dịch tiếng Việt...";
-
         right.value = item.translation || "";
+        right.setAttribute("aria-label", `Bản dịch ${index + 1}`);
 
         right.addEventListener("input", () => {
-
             item.translation = right.value;
-
-            translations.set(
-                pathToString(item.path),
-                right.value
-            );
+            translations.set(pathToString(item.path), right.value);
         });
 
         row.appendChild(left);
         row.appendChild(right);
-
         container.appendChild(row);
     });
 
     const exportButton = document.createElement("button");
 
-    exportButton.textContent =
-        "💾 Xuất file đã dịch";
-
-    exportButton.className =
-        "gt-export-button";
-
-    exportButton.addEventListener(
-        "click",
-        exportTranslatedFile
-    );
+    exportButton.type = "button";
+    exportButton.textContent = "💾 Xuất file đã dịch";
+    exportButton.className = "gt-export-button";
+    exportButton.addEventListener("click", exportTranslatedFile);
 
     container.appendChild(exportButton);
-
     resultBox.appendChild(container);
 }
 
-/* =========================
-   XUẤT FILE
-   ========================= */
-
 function exportTranslatedFile() {
-
     if (!currentFile) {
         showMessage("⚠️ Chưa có file.");
         return;
     }
 
-    let outputText = "";
-
-    /*
-     * JSON
-     */
+    let outputText;
 
     if (currentData !== null) {
-
-        const clonedData =
-            deepClone(currentData);
+        const clonedData = deepClone(currentData);
 
         extractedTexts.forEach(item => {
-
-            if (
-                item.translation &&
-                item.translation.trim()
-            ) {
-
+            if (item.translation?.trim()) {
                 setValueByPath(
                     clonedData,
                     item.path,
@@ -518,163 +435,97 @@ function exportTranslatedFile() {
             }
         });
 
-        /*
-         * Giữ JSON đẹp và hợp lệ.
-         */
-
-        outputText =
-            JSON.stringify(
-                clonedData,
-                null,
-                2
-            );
-    }
-
-    /*
-     * TXT / RPY / KS / JS / XML...
-     */
-
-    else {
-
-        outputText = originalText;
-
-        /*
-         * Thay từng dòng text.
-         *
-         * Chỉ thay khi người dùng thực sự
-         * nhập bản dịch.
-         */
-
-        const sorted =
-            [...extractedTexts]
-                .sort(
-                    (a, b) =>
-                        b.path[1] - a.path[1]
-                );
-
-        const lines =
-            outputText.split(/\r?\n/);
-
-        sorted.forEach(item => {
-
-            const lineIndex =
-                item.path[1];
-
-            if (
-                item.translation &&
-                item.translation.trim()
-            ) {
-
-                const originalLine =
-                    lines[lineIndex];
-
-                const leading =
-                    originalLine.match(/^\s*/)?.[0] || "";
-
-                lines[lineIndex] =
-                    leading +
-                    preserveSpecialCodes(
-                        originalLine.trim(),
-                        item.translation
-                    );
-            }
-        });
-
-        outputText =
-            lines.join("\n");
+        outputText = JSON.stringify(clonedData, null, 2);
+    } else {
+        outputText = exportTextFile();
     }
 
     downloadFile(
-        makeTranslatedFileName(
-            currentFile.name
-        ),
+        makeTranslatedFileName(currentFile.name),
         outputText
     );
 
-    showMessage(
-        "✅ Đã tạo file bản dịch."
+    showMessage("✅ Đã tạo file bản dịch.");
+}
+
+function exportTextFile() {
+    const extension = getExtension(currentFile?.name || "");
+    const lines = originalText.split(/\r?\n/);
+
+    [...extractedTexts]
+        .filter(item => item.translation?.trim())
+        .sort((a, b) => b.path[1] - a.path[1])
+        .forEach(item => {
+            const lineIndex = item.path[1];
+
+            if (lineIndex < 0 || lineIndex >= lines.length) return;
+
+            const translated = preserveSpecialCodes(
+                item.original,
+                item.translation
+            );
+
+            if (extension === "rpy" || extension === "js") {
+                lines[lineIndex] = replaceQuotedValue(
+                    lines[lineIndex],
+                    item.original,
+                    translated
+                );
+            } else {
+                const index = lines[lineIndex].indexOf(item.original);
+
+                if (index !== -1) {
+                    lines[lineIndex] =
+                        lines[lineIndex].slice(0, index) +
+                        translated +
+                        lines[lineIndex].slice(index + item.original.length);
+                }
+            }
+        });
+
+    return lines.join("\n");
+}
+
+function replaceQuotedValue(line, original, translated) {
+    const escaped = escapeRegExp(original);
+    const pattern = new RegExp(`(["'])${escaped}\\1`);
+
+    if (!pattern.test(line)) return line;
+
+    return line.replace(
+        pattern,
+        (_, quote) => `${quote}${translated}${quote}`
     );
 }
 
-/* =========================
-   GIỮ CODE / PLACEHOLDER
-   ========================= */
+function preserveSpecialCodes(original, translated) {
+    const result = translated;
 
-function preserveSpecialCodes(
-    original,
-    translated
-) {
+    const codes = [
+        ...(original.match(/%[0-9]+/g) || []),
+        ...(original.match(/\\[A-Za-z]+(?:\[[^\]]*\])?/g) || [])
+    ];
 
-    let result = translated;
-
-    /*
-     * Giữ %1, %2, %3...
-     */
-
-    const percentCodes =
-        original.match(/%\d+/g) || [];
-
-    percentCodes.forEach(code => {
-
+    [...new Set(codes)].forEach(code => {
         if (!result.includes(code)) {
-
-            result += code;
-        }
-    });
-
-    /*
-     * Giữ \n, \V[1], \N[1], \C[1]...
-     */
-
-    const escapeCodes =
-        original.match(
-            /\\[A-Za-z]+(?:\[\d+\])?/g
-        ) || [];
-
-    escapeCodes.forEach(code => {
-
-        if (!result.includes(code)) {
-
-            /*
-             * Không tự ý thêm nếu đây là
-             * escape code nằm giữa câu.
-             *
-             * Chỉ cảnh báo trong console.
-             */
-
-            console.warn(
-                "Escape code bị thiếu trong bản dịch:",
-                code
-            );
+            console.warn("Bản dịch thiếu code:", code);
         }
     });
 
     return result;
 }
 
-/* =========================
-   SET VALUE THEO PATH
-   ========================= */
-
-function setValueByPath(
-    object,
-    path,
-    value
-) {
-
+function setValueByPath(object, path, value) {
     if (!path.length) return;
 
     let current = object;
 
-    for (
-        let i = 0;
-        i < path.length - 1;
-        i++
-    ) {
-
+    for (let i = 0; i < path.length - 1; i++) {
         const key = path[i];
 
         if (
+            current === null ||
+            current === undefined ||
             current[key] === undefined ||
             current[key] === null
         ) {
@@ -684,126 +535,61 @@ function setValueByPath(
         current = current[key];
     }
 
-    current[
-        path[path.length - 1]
-    ] = value;
+    if (current !== null && current !== undefined) {
+        current[path[path.length - 1]] = value;
+    }
 }
-
-/* =========================
-   CLONE DATA
-   ========================= */
 
 function deepClone(data) {
-
-    return JSON.parse(
-        JSON.stringify(data)
-    );
+    return JSON.parse(JSON.stringify(data));
 }
 
-/* =========================
-   DOWNLOAD
-   ========================= */
+function downloadFile(filename, content) {
+    const blob = new Blob(
+        [content],
+        { type: "application/octet-stream" }
+    );
 
-function downloadFile(
-    filename,
-    content
-) {
-
-    const blob =
-        new Blob(
-            [content],
-            {
-                type:
-                    "application/octet-stream"
-            }
-        );
-
-    const url =
-        URL.createObjectURL(blob);
-
-    const link =
-        document.createElement("a");
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
 
     link.href = url;
-
     link.download = filename;
 
     document.body.appendChild(link);
-
     link.click();
-
     link.remove();
 
-    setTimeout(() => {
-
-        URL.revokeObjectURL(url);
-
-    }, 1000);
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
 }
 
-/* =========================
-   TÊN FILE MỚI
-   ========================= */
-
-function makeTranslatedFileName(
-    filename
-) {
-
-    const dot =
-        filename.lastIndexOf(".");
+function makeTranslatedFileName(filename) {
+    const dot = filename.lastIndexOf(".");
 
     if (dot === -1) {
-        return filename + "_vi";
+        return `${filename}_vi`;
     }
 
-    const name =
-        filename.substring(0, dot);
-
-    const extension =
-        filename.substring(dot);
-
-    return (
-        name +
-        "_vi" +
-        extension
-    );
+    return filename.slice(0, dot) + "_vi" + filename.slice(dot);
 }
-
-/* =========================
-   PATH
-   ========================= */
 
 function pathToString(path) {
-
-    return path
-        .map(part => `[${part}]`)
-        .join(".");
+    return path.map(part => `[${String(part)}]`).join(".");
 }
-
-/* =========================
-   EXTENSION
-   ========================= */
 
 function getExtension(filename) {
+    const dot = filename.lastIndexOf(".");
 
-    const dot =
-        filename.lastIndexOf(".");
+    if (dot === -1) return "";
 
-    if (dot === -1) {
-        return "";
-    }
-
-    return filename
-        .substring(dot + 1)
-        .toLowerCase();
+    return filename.slice(dot + 1).toLowerCase();
 }
 
-/* =========================
-   HTML ESCAPE
-   ========================= */
+function escapeRegExp(value) {
+    return String(value).replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+}
 
 function escapeHTML(value) {
-
     return String(value)
         .replace(/&/g, "&amp;")
         .replace(/</g, "&lt;")
@@ -812,55 +598,31 @@ function escapeHTML(value) {
         .replace(/'/g, "&#039;");
 }
 
-/* =========================
-   THÔNG BÁO
-   ========================= */
-
 function showMessage(message) {
-
     console.log(message);
 
-    /*
-     * Nếu HTML có element status
-     * thì hiển thị ở đó.
-     */
-
-    const status =
-        findElement(
-            "status",
-            "message",
-            "statusMessage"
-        );
+    const status = findElement(
+        "status",
+        "message",
+        "statusMessage"
+    );
 
     if (status) {
         status.textContent = message;
     }
 }
 
-/* =========================================================
-   PHÍM TẮT
-   ========================================================= */
+document.addEventListener("keydown", event => {
+    if (
+        event.ctrlKey &&
+        event.key.toLowerCase() === "o"
+    ) {
+        event.preventDefault();
 
-document.addEventListener(
-    "keydown",
-    event => {
+        const { fileInput } = getUI();
 
-        /*
-         * Ctrl + O:
-         * mở file
-         */
-
-        if (
-            event.ctrlKey &&
-            event.key.toLowerCase() === "o"
-        ) {
-
-            event.preventDefault();
-
-            if (fileInput) {
-                fileInput.click();
-            }
+        if (fileInput) {
+            fileInput.click();
         }
-
     }
-);
+});
