@@ -302,13 +302,31 @@ function processTextFile(text) {
             return;
         }
 
+        /* Không đưa lệnh chân dung vào danh sách dịch */
+        if (
+            /^<(Battle Portrait|Menu Portrait):/i.test(clean)
+        ) {
+            return;
+        }
+
+        /* Không đưa các tag mở/đóng vào danh sách */
+        if (
+            /^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(clean)
+        ) {
+            return;
+        }
+
+        /* Bỏ comment */
         if (
             /^(#|\/\/|\/\*|\*|;)/.test(clean)
         ) {
             return;
         }
 
-        if (!isTranslatable(clean, ["line", index])) {
+        /* Chỉ bỏ dòng không có chữ */
+        if (
+            !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(clean)
+        ) {
             return;
         }
 
@@ -321,7 +339,6 @@ function processTextFile(text) {
 
     showPreview();
 }
-
 /* =========================
    PREVIEW
    ========================= */
