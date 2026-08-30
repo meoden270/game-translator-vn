@@ -183,82 +183,59 @@ function isTranslatable(text, path) {
         return false;
     }
 
-    /* Chỉ số */
-    if (/^[\d\s.,+\-*/%]+$/.test(value)) {
-        return false;
-    }
-
-    /* true / false / null */
-    if (/^(true|false|null|undefined)$/i.test(value)) {
-        return false;
-    }
-
-    /* Tên file */
+    /* Không dịch Portrait */
     if (
-        /\.(png|jpg|jpeg|gif|webp|bmp|svg|ogg|m4a|wav|mp3|mid|midi|ttf|otf|woff|woff2)$/i
-            .test(value)
+        /^<(Battle Portrait|Menu Portrait):/i.test(value)
     ) {
         return false;
     }
 
-    /* URL */
+    /* Không dịch tag mở / đóng */
+    if (
+        /^<\/?(Trait Sets|Biography|WordWrap)>$/i.test(value)
+    ) {
+        return false;
+    }
+
+    /* Không dịch số */
+    if (/^[\d\s.,+\-*/%]+$/.test(value)) {
+        return false;
+    }
+
+    /* Không dịch true / false / null */
+    if (/^(true|false|null|undefined)$/i.test(value)) {
+        return false;
+    }
+
+    /* Không dịch tên file */
+    if (
+        /\.(png|jpg|jpeg|gif|webp|bmp|svg|ogg|m4a|wav|mp3|mid|midi|ttf|otf|woff|woff2)$/i.test(value)
+    ) {
+        return false;
+    }
+
+    /* Không dịch URL */
     if (
         /^(https?:\/\/|ftp:\/\/|data:)/i.test(value)
     ) {
         return false;
     }
 
-    /* Không dịch tên file / mã trong lệnh */
+    /* Không dịch công thức RPG Maker */
     if (
-    /^<(Battle Portrait|Menu Portrait):\s*[^>]+>$/i.test(value)
-    ) {
-    return false;
-    }
-
-    /* Tag / lệnh */
-    if (/^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(value)) {
-    return false;
-    }
-
-    /* Các lệnh có nội dung có thể dịch */
-    if (/^<[^>]+:\s*[^>]+>$/.test(value)) {
-    return true;
-    }
-
-    /* Công thức RPG Maker */
-    if (
-        /\b[a-z]\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i
-            .test(value)
+        /\b[a-z]\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i.test(value)
     ) {
         return false;
     }
 
-    /* Công thức có toán tử */
+    /* Không dịch ID nội bộ */
     if (
-        /^[a-zA-Z_$][\w$]*(?:\.[a-zA-Z_$][\w$]*)+\s*[\s\S]*$/
-            .test(value) &&
-        /[+\-*/=]/.test(value)
+        /^(Actor|Enemy|Item|Weapon|Armor|Skill|State|Class|Map|Event|Troop|Character|EV)\w*$/i.test(value)
     ) {
         return false;
     }
 
-    /* Code */
-    if (
-        /^(var|let|const|function|return|if|else|for|while)\b/i
-            .test(value)
-    ) {
-        return false;
-    }
-
-    /* ID kiểu Actor1_1 */
-    if (
-        /^(Actor|Enemy|Item|Weapon|Armor|Skill|State|Class|Map|Event|Troop|Cha|Character|EV)\w*$/i
-            .test(value)
-    ) {
-        return false;
-    }
-
-    /* ID có dấu _ */
+    /* Không dịch mã kiểu abc_xyz */
     if (
         /^[A-Za-z0-9]+_[A-Za-z0-9_]+$/.test(value) &&
         !/\s/.test(value)
@@ -266,14 +243,7 @@ function isTranslatable(text, path) {
         return false;
     }
 
-    /* Escape code đứng riêng */
-    if (
-        /^\\[A-Za-z]+(?:\[[^\]]*\])?$/.test(value)
-    ) {
-        return false;
-    }
-
-    /* Không có chữ */
+    /* Phải có chữ */
     if (
         !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)
     ) {
