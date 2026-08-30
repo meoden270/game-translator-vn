@@ -21,7 +21,7 @@ Tất cả các thay đổi quan trọng của dự án sẽ được ghi lại 
 ## Đang phát triển
 - Đọc JSON của RPG Maker.
 - Hỗ trợ dịch game.
-- 
+  
 ## v0.2.0 - 30/08/2026
 
 🎉 Cải tiến hệ thống dịch.
