@@ -3,21 +3,29 @@
 Tất cả các thay đổi quan trọng của dự án sẽ được ghi lại tại đây.
 
 ---
-# CHANGELOG
 
-## v0.2.1 — 30/08/2026
+# Changelog
 
-### Cập nhật
-- Cải thiện nhận diện text có thể dịch trong file game.
-- Hạn chế đưa ID, tên resource và code nội bộ vào danh sách dịch.
-- Giữ nguyên cấu trúc JSON.
-- Giữ nguyên code và placeholder khi xuất file.
-- Cải thiện xử lý file JSON / TXT / RPY / KS / JS / XML cơ bản.
+## [v0.2.1] - 30/08/2026
 
-### Ghi chú
-- Bản v0.2.1 vẫn chưa tích hợp dịch tự động bằng API.
-- Người dùng có thể chỉnh bản dịch thủ công trước khi xuất file.
-  
+### ✨ Cải thiện
+- Hoàn thiện giao diện dịch file game.
+- Hiển thị text gốc ở phía trên.
+- Hiển thị ô nhập bản dịch tiếng Việt ở phía dưới.
+- Sửa lỗi số thứ tự bị hiển thị trùng.
+- Cải thiện giao diện trên điện thoại.
+- Giữ nguyên cấu trúc file khi xuất bản dịch.
+
+### 🛠️ Hỗ trợ
+- Đọc và phân tích file JSON.
+- Đọc file text/game.
+- Nhận diện và bỏ qua một số dữ liệu không cần dịch.
+- Giữ nguyên các code đặc biệt trong text.
+- Xuất file đã dịch với hậu tố `_vi`.
+
+### 📌 Ghi chú
+- Phiên bản này tập trung hoàn thiện giao diện và hệ thống dịch thủ công.
+- Tính năng dịch tự động sẽ được phát triển ở phiên bản tiếp theo.
 ---
 
 ## v0.2.0 - 30/08/2026
