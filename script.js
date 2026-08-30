@@ -1,34 +1,17 @@
 /* =========================================================
-   GAME TRANSLATOR VN - v0.2.1
-   Ngày cập nhật: 30/08/2026
+   GAME TRANSLATOR VN - v0.2.2
    ========================================================= */
 
 "use strict";
-
-/* =========================
-   BIẾN
-   ========================= */
 
 let currentFile = null;
 let originalText = "";
 let currentData = null;
 let extractedTexts = [];
 
-/* =========================
-   ELEMENT
-   ========================= */
-
 const fileInput = document.getElementById("fileInput");
 const translateBtn = document.getElementById("translateBtn");
 const output = document.getElementById("output");
-
-/* =========================
-   KIỂM TRA
-   ========================= */
-
-if (!fileInput || !translateBtn || !output) {
-    console.error("Game Translator VN: Không tìm thấy HTML cần thiết.");
-}
 
 /* =========================
    CHỌN FILE
@@ -39,37 +22,24 @@ if (fileInput) {
 
         const file = this.files[0];
 
-        if (!file) {
-            output.textContent = "Chưa chọn tệp...";
-            return;
-        }
+        if (!file) return;
 
         currentFile = file;
 
         try {
             originalText = await file.text();
-
             currentData = null;
             extractedTexts = [];
 
-            output.textContent =
-                `📂 Đã chọn: ${file.name}\n\n` +
-                `Đang phân tích file...`;
-
-            const extension = getExtension(file.name);
-
-            if (extension === "json") {
+            if (getExtension(file.name) === "json") {
                 processJSON(originalText);
             } else {
                 processTextFile(originalText);
             }
 
         } catch (error) {
-
             console.error(error);
-
-            output.textContent =
-                "❌ Không thể đọc file.";
+            output.textContent = "❌ Không thể đọc file.";
         }
     });
 }
@@ -82,12 +52,11 @@ if (translateBtn) {
     translateBtn.addEventListener("click", function () {
 
         if (!currentFile) {
-            output.textContent =
-                "⚠️ Hãy chọn file game trước.";
+            output.textContent = "⚠️ Hãy chọn file game trước.";
             return;
         }
 
-        if (extractedTexts.length === 0) {
+        if (!extractedTexts.length) {
             output.textContent =
                 "⚠️ Không tìm thấy text có thể dịch.";
             return;
@@ -104,9 +73,7 @@ if (translateBtn) {
 function processJSON(text) {
 
     try {
-
         currentData = JSON.parse(text);
-
         extractedTexts = [];
 
         scanJSON(currentData, []);
@@ -114,26 +81,17 @@ function processJSON(text) {
         showPreview();
 
     } catch (error) {
-
         console.error(error);
-
         currentData = null;
-
-        output.textContent =
-            "❌ File JSON không hợp lệ.";
+        output.textContent = "❌ File JSON không hợp lệ.";
     }
 }
-
-/* =========================
-   QUÉT JSON
-   ========================= */
 
 function scanJSON(value, path) {
 
     if (typeof value === "string") {
 
-        if (isTranslatable(value, path)) {
-
+        if (isTranslatable(value)) {
             extractedTexts.push({
                 path: [...path],
                 original: value,
@@ -147,12 +105,7 @@ function scanJSON(value, path) {
     if (Array.isArray(value)) {
 
         value.forEach(function (item, index) {
-
-            scanJSON(
-                item,
-                [...path, index]
-            );
-
+            scanJSON(item, [...path, index]);
         });
 
         return;
@@ -161,27 +114,20 @@ function scanJSON(value, path) {
     if (value && typeof value === "object") {
 
         Object.keys(value).forEach(function (key) {
-
-            scanJSON(
-                value[key],
-                [...path, key]
-            );
-
+            scanJSON(value[key], [...path, key]);
         });
     }
 }
 
 /* =========================
-   NHẬN DIỆN TEXT
+   KIỂM TRA TEXT
    ========================= */
 
-function isTranslatable(text, path) {
+function isTranslatable(text) {
 
-    const value = text.trim();
+    const value = String(text).trim();
 
-    if (!value) {
-        return false;
-    }
+    if (!value) return false;
 
     /* Không dịch Portrait */
     if (
@@ -190,9 +136,9 @@ function isTranslatable(text, path) {
         return false;
     }
 
-    /* Không dịch tag mở / đóng */
+    /* Không dịch tag cấu trúc */
     if (
-        /^<\/?(Trait Sets|Biography|WordWrap)>$/i.test(value)
+        /^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(value)
     ) {
         return false;
     }
@@ -207,7 +153,7 @@ function isTranslatable(text, path) {
         return false;
     }
 
-    /* Không dịch tên file */
+    /* Không dịch đường dẫn / tài nguyên */
     if (
         /\.(png|jpg|jpeg|gif|webp|bmp|svg|ogg|m4a|wav|mp3|mid|midi|ttf|otf|woff|woff2)$/i.test(value)
     ) {
@@ -215,13 +161,11 @@ function isTranslatable(text, path) {
     }
 
     /* Không dịch URL */
-    if (
-        /^(https?:\/\/|ftp:\/\/|data:)/i.test(value)
-    ) {
+    if (/^(https?:\/\/|ftp:\/\/|data:)/i.test(value)) {
         return false;
     }
 
-    /* Không dịch công thức RPG Maker */
+    /* Không dịch công thức RPG */
     if (
         /\b[a-z]\.(atk|def|mat|mdf|agi|luk|hp|mp|tp)\b/i.test(value)
     ) {
@@ -244,17 +188,11 @@ function isTranslatable(text, path) {
     }
 
     /* Phải có chữ */
-    if (
-        !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value)
-    ) {
-        return false;
-    }
-
-    return true;
+    return /[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(value);
 }
 
 /* =========================
-   FILE TEXT
+   FILE TEXT / RPY / KS / JS
    ========================= */
 
 function processTextFile(text) {
@@ -268,93 +206,118 @@ function processTextFile(text) {
 
         const clean = line.trim();
 
-        if (!clean) {
+        if (!clean) return;
+
+        /* Bỏ comment */
+        if (/^(#|\/\/|\/\*|\*|;)/.test(clean)) {
             return;
         }
 
-        /* Không đưa lệnh chân dung vào danh sách dịch */
+        /* Bỏ Portrait */
         if (
             /^<(Battle Portrait|Menu Portrait):/i.test(clean)
         ) {
             return;
         }
 
-        /* Không đưa các tag mở/đóng vào danh sách */
+        /* Bỏ tag cấu trúc */
         if (
             /^<\/?(Biography|WordWrap|Trait Sets)>$/i.test(clean)
         ) {
             return;
         }
 
-        /* Bỏ comment */
+        /*
+         * Với lệnh có dạng:
+         * <Passive State: Half Encounters>
+         *
+         * Cho phép đưa ra dịch.
+         */
         if (
-            /^(#|\/\/|\/\*|\*|;)/.test(clean)
+            /^<[^>]+:\s*.+>$/.test(clean)
         ) {
+            extractedTexts.push({
+                path: ["line", index],
+                original: clean,
+                translation: ""
+            });
+
             return;
         }
 
-        /* Chỉ bỏ dòng không có chữ */
+        /*
+         * Các dòng thuộc Trait Sets:
+         * Element: Dark
+         * Gender: Male
+         * Nature: Modest
+         */
         if (
-            !/[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]/.test(clean)
+            /^[A-Za-zÀ-ỹ一-鿿ぁ-んァ-ヶ가-힣]+\s*:\s*.+$/.test(clean)
         ) {
+            extractedTexts.push({
+                path: ["line", index],
+                original: clean,
+                translation: ""
+            });
+
             return;
         }
 
-        extractedTexts.push({
-            path: ["line", index],
-            original: clean,
-            translation: ""
-        });
+        /*
+         * Nội dung thông thường.
+         */
+        if (isTranslatable(clean)) {
+
+            extractedTexts.push({
+                path: ["line", index],
+                original: clean,
+                translation: ""
+            });
+        }
     });
 
     showPreview();
 }
+
 /* =========================
    PREVIEW
    ========================= */
 
 function showPreview() {
 
-    if (!output) {
-        return;
-    }
+    if (!output) return;
 
-    if (extractedTexts.length === 0) {
-
+    if (!extractedTexts.length) {
         output.textContent =
             "Không tìm thấy text có thể dịch.";
-
         return;
     }
 
-    let html = "";
-
-    html +=
+    let text =
         "📋 TEXT TÌM THẤY: " +
         extractedTexts.length +
         "\n\n";
 
     const limit =
-        Math.min(
-            extractedTexts.length,
-            100
-        );
+        Math.min(extractedTexts.length, 100);
 
     for (let i = 0; i < limit; i++) {
 
-        html +=
-            `${i + 1}. ${extractedTexts[i].original}\n`;
+        text +=
+            (i + 1) +
+            ". " +
+            extractedTexts[i].original +
+            "\n";
     }
 
     if (extractedTexts.length > 100) {
-
-        html +=
-            `\n... và ${
-                extractedTexts.length - 100
-            } text khác.`;
+        text +=
+            "\n... còn " +
+            (extractedTexts.length - 100) +
+            " text khác.";
     }
 
-    output.textContent = html;
+    output.textContent = text;
 }
 
 /* =========================
@@ -362,49 +325,103 @@ function showPreview() {
    ========================= */
 
 function showTranslationEditor() {
+
     output.innerHTML = "";
 
-    const title = document.createElement("div");
+    const editor =
+        document.createElement("div");
+
+    editor.className = "gt-editor";
+
+    const title =
+        document.createElement("div");
+
     title.innerHTML =
         "<h3>🇻🇳 Dịch file game</h3>" +
         "<p>Text gốc ở trên — Bản dịch ở dưới</p>";
 
-    output.appendChild(title);
-
-    const editor = document.createElement("div");
-    editor.className = "gt-editor";
+    editor.appendChild(title);
 
     extractedTexts.forEach(function (item, index) {
-        const row = document.createElement("div");
+
+        const row =
+            document.createElement("div");
+
         row.className = "gt-edit-row";
 
-        const original = document.createElement("textarea");
-        original.className = "gt-original-input";
-        original.value = item.original;
+        const original =
+            document.createElement("textarea");
+
+        original.className =
+            "gt-original-input";
+
+        original.value =
+            item.original;
+
         original.readOnly = true;
 
-        const translation = document.createElement("textarea");
-        translation.className = "gt-translation-input";
-        translation.placeholder = "Nhập bản dịch tiếng Việt...";
+        const translation =
+            document.createElement("textarea");
 
-        translation.addEventListener("input", function () {
-            item.translation = translation.value;
-        });
+        translation.className =
+            "gt-translation-input";
+
+        translation.placeholder =
+            "Nhập bản dịch tiếng Việt...";
+
+        translation.addEventListener(
+            "input",
+            function () {
+
+                item.translation =
+                    translation.value;
+
+                autoResize(translation);
+            }
+        );
 
         row.appendChild(original);
         row.appendChild(translation);
 
         editor.appendChild(row);
+
+        autoResize(original);
     });
+
+    const exportButton =
+        document.createElement("button");
+
+    exportButton.textContent =
+        "💾 Xuất file đã dịch";
+
+    exportButton.className =
+        "gt-export-button";
+
+    exportButton.addEventListener(
+        "click",
+        exportTranslatedFile
+    );
+
+    editor.appendChild(exportButton);
 
     output.appendChild(editor);
 
-    const exportButton = document.createElement("button");
-    exportButton.textContent = "💾 Xuất file đã dịch";
-    exportButton.className = "gt-export-button";
-    exportButton.addEventListener("click", exportTranslatedFile);
+    document
+        .querySelectorAll(".gt-translation-input")
+        .forEach(autoResize);
+}
 
-    output.appendChild(exportButton);
+/* =========================
+   TỰ GIÃN Ô CHỮ
+   ========================= */
+
+function autoResize(element) {
+
+    if (!element) return;
+
+    element.style.height = "auto";
+    element.style.height =
+        element.scrollHeight + "px";
 }
 
 /* =========================
@@ -413,11 +430,9 @@ function showTranslationEditor() {
 
 function exportTranslatedFile() {
 
-    if (!currentFile) {
-        return;
-    }
+    if (!currentFile) return;
 
-    let result = "";
+    let result;
 
     if (currentData !== null) {
 
@@ -453,8 +468,7 @@ function exportTranslatedFile() {
 
     } else {
 
-        result =
-            exportText();
+        result = exportText();
     }
 
     downloadFile(
@@ -472,64 +486,59 @@ function exportText() {
     const lines =
         originalText.split(/\r?\n/);
 
-    const items =
-        extractedTexts
-            .filter(function (item) {
-                return (
-                    item.translation &&
-                    item.translation.trim()
-                );
-            })
-            .sort(function (a, b) {
-                return b.path[1] - a.path[1];
-            });
-
-    items.forEach(function (item) {
-
-        const lineIndex =
-            item.path[1];
-
-        if (
-            lineIndex < 0 ||
-            lineIndex >= lines.length
-        ) {
-            return;
-        }
-
-        const originalLine =
-            lines[lineIndex];
-
-        const translated =
-            preserveCodes(
-                item.original,
-                item.translation
+    extractedTexts
+        .filter(function (item) {
+            return (
+                item.translation &&
+                item.translation.trim()
             );
+        })
+        .sort(function (a, b) {
+            return b.path[1] - a.path[1];
+        })
+        .forEach(function (item) {
 
-        const position =
-            originalLine.indexOf(
-                item.original
-            );
+            const lineIndex =
+                item.path[1];
 
-        if (position !== -1) {
+            if (
+                lineIndex < 0 ||
+                lineIndex >= lines.length
+            ) {
+                return;
+            }
 
-            lines[lineIndex] =
-                originalLine.slice(
-                    0,
-                    position
-                ) +
-                translated +
-                originalLine.slice(
-                    position +
-                    item.original.length
+            const oldLine =
+                lines[lineIndex];
+
+            const translated =
+                preserveCodes(
+                    item.original,
+                    item.translation
                 );
-        }
-    });
+
+            const position =
+                oldLine.indexOf(
+                    item.original
+                );
+
+            if (position !== -1) {
+
+                lines[lineIndex] =
+                    oldLine.slice(0, position) +
+                    translated +
+                    oldLine.slice(
+                        position +
+                        item.original.length
+                    );
+            }
+        });
 
     return lines.join("\n");
 }
 
 /* =========================
-   GIỮ CODE
+   GIỮ CODE ĐẶC BIỆT
    ========================= */
 
 function preserveCodes(
@@ -566,12 +575,9 @@ function setValue(
     value
 ) {
 
-    if (!path.length) {
-        return;
-    }
+    if (!path.length) return;
 
-    let current =
-        object;
+    let current = object;
 
     for (
         let i = 0;
@@ -631,24 +637,18 @@ function downloadFile(
     document.body.appendChild(link);
 
     link.click();
-
     link.remove();
 
-    setTimeout(
-        function () {
-            URL.revokeObjectURL(url);
-        },
-        1000
-    );
+    setTimeout(function () {
+        URL.revokeObjectURL(url);
+    }, 1000);
 }
 
 /* =========================
    TÊN FILE
    ========================= */
 
-function makeFileName(
-    filename
-) {
+function makeFileName(filename) {
 
     const dot =
         filename.lastIndexOf(".");
@@ -668,16 +668,12 @@ function makeFileName(
    EXTENSION
    ========================= */
 
-function getExtension(
-    filename
-) {
+function getExtension(filename) {
 
     const dot =
         filename.lastIndexOf(".");
 
-    if (dot === -1) {
-        return "";
-    }
+    if (dot === -1) return "";
 
     return filename
         .slice(dot + 1)
@@ -685,7 +681,7 @@ function getExtension(
 }
 
 /* =========================
-   PHÍM TẮT CTRL + O
+   CTRL + O
    ========================= */
 
 document.addEventListener(
@@ -707,5 +703,5 @@ document.addEventListener(
 );
 
 console.log(
-    "🎮 Game Translator VN v0.2.1 đang chạy."
+    "🎮 Game Translator VN v0.2.2 đang chạy."
 );
